@@ -1,21 +1,21 @@
 # code-to-images
 
-<!-- Language Toggle -->
-<style>
-.lang-tab { display: flex; gap: 8px; margin: 16px 0; }
-.lang-btn { padding: 6px 20px; border: 2px solid #667eea; border-radius: 16px; cursor: pointer; font-size: 13px; background: white; color: #667eea; }
-.lang-btn.active { background: #667eea; color: white; }
-</style>
-<div class="lang-tab">
-  <button class="lang-btn active" id="rbtn-zh" onclick="document.getElementById('rinfo-zh').style.display='block';document.getElementById('rinfo-en').style.display='none';document.getElementById('rbtn-zh').className='lang-btn active';document.getElementById('rbtn-en').className='lang-btn'">中文</button>
-  <button class="lang-btn" id="rbtn-en" onclick="document.getElementById('rinfo-zh').style.display='none';document.getElementById('rinfo-en').style.display='block';document.getElementById('rbtn-zh').className='lang-btn';document.getElementById('rbtn-en').className='lang-btn active'">English</button>
-</div>
+> 将源代码文件转换为带行号 + 语法高亮的 A4 图片，并合并为 PDF。
+> Convert source code files into A4 images with line numbers, syntax highlighting, then merge to PDF.
 
-<div id="rinfo-zh">
+**v2.0.2** — Brace-depth indentation · Auto word-wrapping · Bilingual docs
 
-> 将源代码文件转换为带行号 + 语法高亮的 A4 图片，并合并为 PDF。**v2.0.2** — 大括号深度缩进 + 自动标点换行。
+---
 
-## 功能
+📖 **中文** · [English](#english)
+
+---
+
+<h2 id="中文">📖 中文说明</h2>
+
+将源代码文件（`.c`、`.h`、`.py`、`.js` 等）转换为带**行号**和**语法高亮**的 A4 比例图片，自动合并为一个 PDF。
+
+### 功能
 
 - ✅ **行号** — 自适应装订线宽度（千行文件自动加宽）
 - ✅ **语法高亮** — 关键字、寄存器、宏、数字、字符串、注释分别着色
@@ -29,39 +29,39 @@
 - ✅ **固定 A4 比例** — 794×1123px (96 DPI)，每页尺寸统一
 - ✅ **PDF 输出** — 每个源文件一份 PDF
 
-## 安装依赖
+### 安装依赖
 
 ```bash
 npm install -g @resvg/resvg-js
 pip install img2pdf
 ```
 
-## 使用
+### 使用
 
 1. 编辑 `gen_code_pdfs.py` 顶部 `FILES` 列表，填入源文件名
 2. 按需修改配置（`FONT_KEY`、`FONT_SIZE` 等）
 3. 运行：`python gen_code_pdfs.py`
 4. 输出：`文件名.pdf` + `文件名_images/` 目录（SVG + PNG）
 
-### 批量打印多文件
+#### 批量打印多文件
 
 ```python
 FILES = ['main.c', 'adc.c', 'dma.c', 'spi.c', 'main.h', 'adc.h', 'dma.h', 'spi.h']
 ```
 
-### 提高打印质量（300 DPI）
+#### 提高打印质量（300 DPI）
 
 ```python
 A4_W, A4_H = 2480, 3508  # A4 at 300 DPI
 ```
 
-### 切换字体
+#### 切换字体
 
 ```python
 FONT_KEY = '***'  # cascadia / firacode / jetbrains / consolas / courier / sourcecode
 ```
 
-## 配置参数
+### 配置参数
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -72,7 +72,7 @@ FONT_KEY = '***'  # cascadia / firacode / jetbrains / consolas / courier / sourc
 | `MIN_FONT_SIZE` | `7` | 自动缩小时的最小字号 |
 | `WRAP_IDENT` | `2` | 续行额外缩进字符数 |
 
-## 自动适配逻辑
+### 自动适配逻辑
 
 1. **宽度适配**：扫描所有代码行，找到最长行（正确处理 Tab），计算字号使其刚好占满 A4 内容宽度，上限 `FONT_SIZE`，下限 `MIN_FONT_SIZE`
 2. **缩进计算**：`compute_indent_levels()` 按 `{}` 大括号嵌套深度逐行计算缩进级别，注释/字符串内的括号跳过
@@ -80,7 +80,7 @@ FONT_KEY = '***'  # cascadia / firacode / jetbrains / consolas / courier / sourc
 4. **标点换行**：超宽行在 `;,(){}[]` 后折行，可用宽度扣除深度缩进，续行不产生新行号
 5. **渲染**：行号在 codeClip 外渲染（始终可见），代码在 clip 内渲染，font-family 正确引用
 
-## 输出结构
+### 输出结构
 
 ```
 filename.c_images/
@@ -92,13 +92,13 @@ filename.c_images/
 filename.c.pdf           ← 最终 PDF
 ```
 
-</div>
+---
 
-<div id="rinfo-en" style="display:none">
+<h1 id="english">🇬🇧 English</h1>
 
-> Convert source code files into A4 images with line numbers and syntax highlighting, then merge to PDF. **v2.0.2** — Brace-depth indentation + auto word-wrapping.
+> Convert source code files into A4 images with line numbers and syntax highlighting, then merge to PDF.
 
-## Features
+### Features
 
 - ✅ **Line numbers** — Adaptive gutter width (auto-widens for 1000+ line files)
 - ✅ **Syntax highlighting** — Keywords, registers, macros, numbers, strings, comments
@@ -112,39 +112,39 @@ filename.c.pdf           ← 最终 PDF
 - ✅ **Fixed A4 ratio** — 794×1123px (96 DPI), uniform page dimensions
 - ✅ **PDF output** — One PDF per source file
 
-## Prerequisites
+### Prerequisites
 
 ```bash
 npm install -g @resvg/resvg-js
 pip install img2pdf
 ```
 
-## Usage
+### Usage
 
 1. Edit the `FILES` list at the top of `gen_code_pdfs.py`
 2. Configure `FONT_KEY`, `FONT_SIZE`, etc.
 3. Run: `python gen_code_pdfs.py`
 4. Output: `filename.pdf` + `filename_images/` directory (SVG + PNG)
 
-### Batch processing
+#### Batch processing
 
 ```python
 FILES = ['main.c', 'adc.c', 'dma.c', 'spi.c', 'main.h', 'adc.h', 'dma.h', 'spi.h']
 ```
 
-### Print quality (300 DPI)
+#### Print quality (300 DPI)
 
 ```python
 A4_W, A4_H = 2480, 3508  # A4 at 300 DPI
 ```
 
-### Change font
+#### Change font
 
 ```python
 FONT_KEY = '***'  # cascadia / firacode / jetbrains / consolas / courier / sourcecode
 ```
 
-## Configuration
+### Configuration
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -155,7 +155,7 @@ FONT_KEY = '***'  # cascadia / firacode / jetbrains / consolas / courier / sourc
 | `MIN_FONT_SIZE` | `7` | Minimum font size when auto-reducing |
 | `WRAP_IDENT` | `2` | Extra indent chars for continuation lines |
 
-## Auto-fit Logic
+### Auto-fit Logic
 
 1. **Width fit**: scan all lines, find the longest, calculate font size to fill A4 content width (capped at `FONT_SIZE`, floored at `MIN_FONT_SIZE`)
 2. **Indent calculation**: `compute_indent_levels()` tracks braces per line (skipping comments/strings), each level renders at `TAB_WIDTH × cw` pixels
@@ -163,7 +163,7 @@ FONT_KEY = '***'  # cascadia / firacode / jetbrains / consolas / courier / sourc
 4. **Word-wrapping**: lines exceeding available width break after `;,(){}[]`, continuation lines show no extra line number
 5. **Rendering**: line numbers outside codeClip (always visible), code content inside clip, font-family properly quoted
 
-## Output Structure
+### Output Structure
 
 ```
 filename.c_images/
@@ -175,7 +175,7 @@ filename.c_images/
 filename.c.pdf           ← Final PDF
 ```
 
-</div>
+---
 
 ## License
 
