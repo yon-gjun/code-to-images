@@ -1,44 +1,27 @@
 #!/usr/bin/env python3
-"""Batch convert code files -> A4 images + PDF. One PDF per source file.
-
-v2.0 — Auto-fit, font choices, tab stops, width truncation.
-"""
-import os, sys, subprocess, json, math
+"""Batch convert code files -> A4 images + PDF. One PDF per source file."""
+import os, sys, subprocess, json
 
 # ===== CONFIG =====
-FILES = [
-    # List source files here, e.g.:
-    # 'main.c', 'key.c', 'KEY.h', 'adc.h', 'ADC.c',
-    # 'DS1302.c', 'DS1302.h', 'EEPROM.c', 'EEPROM.h',
-]
+FILES = ['disp_test.c']
+FONT_KEY = 'cascadia'   # cascadia | firacode | jetbrains | consolas | courier | sourcecode
+FONT_SIZE = 14
+LINE_HEIGHT_RATIO = 1.65
+TAB_WIDTH = 4
+MIN_FONT_SIZE = 7
+WRAP_IDENT = 2
 
-FONT_KEY = '***'           # cascadia | firacode | jetbrains | consolas | courier | sourcecode
-FONT_SIZE = 14               # Base font size (px). Auto-reduced if longest line exceeds A4 width.
-LINE_HEIGHT_RATIO = 1.65     # Line height = font_size x this ratio
-TAB_WIDTH = 4                # Tab stop width (in spaces)
-MIN_FONT_SIZE = 7            # Smallest font size when auto-reducing
-
-# Font family definitions (ordered by preference)
-FONT_FAMILIES = {
-    'cascadia':  '"Cascadia Code","Fira Code","JetBrains Mono","Consolas","Courier New",monospace',
-    'firacode':  '"Fira Code","Cascadia Code","JetBrains Mono","Consolas","Courier New",monospace',
-    'jetbrains': '"JetBrains Mono","Cascadia Code","Fira Code","Consolas","Courier New",monospace',
-    'consolas':  '"Consolas","Courier New","Cascadia Code","Fira Code",monospace',
-    'courier':   '"Courier New","Consolas","Cascadia Code",monospace',
-    'sourcecode': '"Source Code Pro","Cascadia Code","Fira Code","Consolas",monospace',
+FONT_NAMES = {
+    'cascadia':'Cascadia Code','firacode':'Fira Code','jetbrains':'JetBrains Mono',
+    'consolas':'Consolas','courier':'Courier New','sourcecode':'Source Code Pro',
 }
 
-# ===== LAYOUT (A4 at 96 DPI = 794 x 1123 px) =====
 A4_W, A4_H = 794, 1123
-HDR_H = 60            # Header bar height
-PAD_L = 68            # Left padding (gutter + gap)
-PAD_R = 36            # Right margin
-PAD_T = 72            # Top padding (header bottom + gap)
-PAD_B = 28            # Bottom margin
-CONTENT_W = A4_W - PAD_L - PAD_R    # ~690px for code
-CONTENT_H = A4_H - PAD_T - PAD_B    # ~1023px for code
+HDR_H = 60; PAD_R = 36; PAD_T = 72; PAD_B = 28
+CONTENT_H = A4_H - PAD_T - PAD_B
+CHAR_RATIO = 0.60
+WRAP_PUNCT = set(';,(){}[]')
 
-# ===== COLOR SCHEME (light theme) =====
 KW = {'void','char','int','u8','u16','u32','uchar','unsigned',
       'for','if','else','while','switch','case','break','return',
       'static','bit','sbit','xdata','idata','code','interrupt',
@@ -48,36 +31,60 @@ RG = {'P0','P1','P2','P3','P4','P5','P6','P7','RST','SCLK','IO','SCK'}
 CO = {'keyword':'#d63384','register':'#e8590c','macro':'#099268',
       'number':'#2b8a3e','string':'#099268','comment':'#868e96',
       'var':'#1971c2','text':'#212529'}
-BG       = '#ffffff'
-HDR_BG   = '#f1f3f5'
-HDR_BD   = '#dee2e6'
-GT_BG    = '#f8f9fa'
-GT_BD    = '#e9ecef'
-LN_COLOR = '#868e96'
-TRUNC_CLR = '#e74c3c'   # Truncation indicator color (horizontal ellipsis)
-
-# Character width ratio for monospace fonts (pixels per px of font-size)
-CHAR_RATIO = 0.60
+BG='#ffffff'; HDR_BG='#f1f3f5'; HDR_BD='#dee2e6'
+GT_BG='#f8f9fa'; GT_BD='#e9ecef'; LN_COLOR='#868e96'
 
 
-def tokenize(line):
-    """Tokenize a line into (text, type) pairs for syntax highlighting."""
+def display_len(text):
+    n = 0
+    for ch in text:
+        if ch == '\t':
+            n += TAB_WIDTH - (n % TAB_WIDTH)
+        else:
+            n += 1
+    return n
+
+
+def compute_indent_levels(lines, all_tokens):
+    """Compute indent level based on brace depth ({} nesting).
+    0 = top level, 1 = inside one { }, 2 = inside two { }, etc.
+    Each level renders at TAB_WIDTH * cw pixels."""
+    depths = [0] * len(lines)
+    depth = 0
+    for idx, (line, toks) in enumerate(zip(lines, all_tokens)):
+        depths[idx] = depth
+        for val, typ in toks:
+            if typ in ('comment', 'string'):
+                continue
+            for ch in val:
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth = max(0, depth - 1)
+    return depths
+
+
+def tokenize_line(line, in_comment=False):
+    if in_comment:
+        return [(line, 'comment')], False
     t, i, n = [], 0, len(line)
     while i < n:
         if line[i] == '#':
-            j = i + 1
-            while j < n and line[j] != '\n': j += 1
+            j = i+1
+            while j < n and line[j] not in '\n\r': j += 1
             t.append((line[i:j], 'macro')); break
         if line[i:i+2] == '//':
             t.append((line[i:], 'comment')); break
         if line[i:i+2] == '/*':
-            j = i + 2
+            j = i+2
             while j < n and line[j:j+2] != '*/': j += 1
             if j < n: j += 2
-            t.append((line[i:j], 'comment')); break
+            t.append((line[i:j], 'comment'))
+            if j >= n or line[j-2:j] != '*/':
+                return t, True
+            i = j; continue
         if line[i] in '"\'':
-            q = line[i]
-            j = i + 1
+            q = line[i]; j = i+1
             while j < n and line[j] != q:
                 if line[j] == '\\': j += 1
                 j += 1
@@ -87,8 +94,8 @@ def tokenize(line):
             j = i
             while j < n and line[j] in ' \t': j += 1
             t.append((line[i:j], 'space')); i = j; continue
-        if line[i].isdigit() or (line[i] == '0' and i+1 < n and line[i+1] in 'xXbB'):
-            if line[i] == '0' and i+1 < n and line[i+1] in 'xXbB': j = i + 2
+        if line[i].isdigit() or (line[i]=='0' and i+1<n and line[i+1] in 'xXbB'):
+            if line[i]=='0' and i+1<n and line[i+1] in 'xXbB': j = i+2
             else: j = i
             while j < n and (line[j].isalnum() or line[j] in '.xXa-fA-FbBoOdD'): j += 1
             t.append((line[i:j], 'number')); i = j; continue
@@ -96,257 +103,236 @@ def tokenize(line):
             j = i
             while j < n and (line[j].isalnum() or line[j] == '_'): j += 1
             w = line[i:j]
-            if w in KW: t.append((w, 'keyword'))
-            elif w in RG: t.append((w, 'register'))
-            else: t.append((w, 'text'))
+            if w in KW: t.append((w,'keyword'))
+            elif w in RG: t.append((w,'register'))
+            else: t.append((w,'text'))
             i = j; continue
-        t.append((line[i], 'text')); i += 1
+        t.append((line[i],'text')); i += 1
     if not t:
-        t.append(('', 'space'))
-    return t
+        t.append(('','space'))
+    return t, False
 
 
-def compute_layout(lines, font_size, line_height_ratio):
-    """Compute rendering constants for given font and content."""
-    fs = font_size
-    cw = fs * CHAR_RATIO                   # character width in px
-    lh = fs * line_height_ratio            # line height in px
+def tokenize_full(lines):
+    result, in_block = [], False
+    for line in lines:
+        toks, cont = tokenize_line(line, in_block)
+        result.append(toks)
+        in_block = cont
+    return result
 
-    # Compute gutter width from maximum line number digits
+
+def wrap_line_tokens(tokens, max_px, cw, indent_px):
+    """Wrap tokenized line if it exceeds max_px width.
+    Returns list of (tokens, is_continuation) tuples.
+    Continuation lines do NOT get their own line number."""
+    # Reconstruct full text from tokens (including spaces)
+    text = ''.join(val for val, typ in tokens)
+    if not text.strip():
+        return [(tokens, False)]
+    raw = text
+    dl = display_len(raw.rstrip('\r\n'))
+    if dl * cw <= max_px:
+        return [(tokens, False)]
+
+    max_chars = int(max_px / cw)
+    parts = []
+    remaining = raw
+    is_first = True
+    while remaining:
+        avail = max_chars if is_first else int((max_px - indent_px) / cw)
+        if avail < 10:
+            avail = max_chars
+        rem_dl = display_len(remaining.rstrip('\r\n'))
+        limit_px = max_px if is_first else max_px - indent_px
+        if rem_dl * cw <= limit_px:
+            parts.append((tokenize_line(remaining, False)[0], not is_first))
+            break
+        wrap_pos = -1
+        pos = 0
+        for i, ch in enumerate(remaining):
+            if ch == '\t':
+                pos += TAB_WIDTH - (pos % TAB_WIDTH)
+            else:
+                pos += 1
+            if ch in WRAP_PUNCT:
+                wrap_pos = i + 1
+            elif ch == ' ' and pos > avail * 0.6:
+                wrap_pos = i + 1
+            if pos > avail and wrap_pos > 0:
+                break
+        if wrap_pos <= 0:
+            pos = 0
+            for i, ch in enumerate(remaining):
+                if ch == '\t':
+                    pos += TAB_WIDTH - (pos % TAB_WIDTH)
+                else:
+                    pos += 1
+                if pos > avail:
+                    wrap_pos = i
+                    break
+            if wrap_pos <= 0 or wrap_pos >= len(remaining):
+                wrap_pos = len(remaining)
+        if wrap_pos >= len(remaining):
+            parts.append((tokenize_line(remaining, False)[0], not is_first))
+            break
+        seg = remaining[:wrap_pos]
+        parts.append((tokenize_line(seg, False)[0], not is_first))
+        remaining = remaining[wrap_pos:]
+        is_first = False
+    return parts
+
+
+def compute_layout(lines, font_size):
+    fs = round(font_size, 1)
+    cw = round(fs * CHAR_RATIO, 1)
+    lh = round(fs * LINE_HEIGHT_RATIO, 1)
     max_ln = len(str(len(lines)))
-    gutter = max(44, max_ln * cw + 20)     # at least 44px
-    left_gap = 12
-    code_x = gutter + left_gap
-    code_w = A4_W - code_x - PAD_R
-
-    # Compute text baseline offset for vertical centering in line height
-    baseline_ofs = fs * 0.85
-
+    gutter = round(max(44, max_ln * cw + 20), 1)
+    code_x = round(gutter + 12, 1)
+    code_w = round(A4_W - code_x - PAD_R, 1)
+    baseline_ofs = round(fs * 0.85, 1)
     return fs, cw, lh, gutter, code_x, code_w, baseline_ofs
 
 
-def compute_optimal_font(lines, base_fs, min_fs, line_height_ratio):
-    """Auto-calculate optimal font size to fit the longest line into A4 width."""
-    # Estimate gutter width for line numbers
-    max_ln_digits = len(str(len(lines)))
-    est_gutter = max(44, max_ln_digits * (base_fs * CHAR_RATIO) + 20)
-    est_code_x = est_gutter + 12
-    est_code_w = A4_W - est_code_x - PAD_R
-
-    # Find longest code line (ignoring trailing newline)
-    max_chars = 0
-    for line in lines:
-        raw = line.rstrip('\n').rstrip('\r')
-        display_chars = 0
-        for ch in raw:
-            if ch == '\t':
-                display_chars += TAB_WIDTH - (display_chars % TAB_WIDTH)
-            else:
-                display_chars += 1
-        if display_chars > max_chars:
-            max_chars = display_chars
-
-    if max_chars == 0:
-        max_chars = 1
-
-    # Font size that fits the longest line into content width
-    ideal_fs = est_code_w / (max_chars * CHAR_RATIO)
-
-    # Clamp between min_fs and base_fs
-    fs = max(min_fs, min(base_fs, ideal_fs))
-
-    # Recalculate gutter with actual font size (slightly different)
-    est_gutter2 = max(44, max_ln_digits * (fs * CHAR_RATIO) + 20)
-    est_code_x2 = est_gutter2 + 12
-    est_code_w2 = A4_W - est_code_x2 - PAD_R
-    ideal_fs2 = est_code_w2 / (max_chars * CHAR_RATIO)
-    fs = max(min_fs, min(base_fs, ideal_fs2))
-
-    return fs
+def compute_optimal_font(lines, base_fs, min_fs):
+    max_digits = len(str(len(lines)))
+    est_g = max(44, max_digits * (base_fs * CHAR_RATIO) + 20)
+    est_w = A4_W - est_g - 12 - PAD_R
+    max_chars = max((display_len(l.rstrip('\r\n')) for l in lines), default=1)
+    if max_chars == 0: max_chars = 1
+    fs = max(min_fs, min(base_fs, est_w / (max_chars * CHAR_RATIO)))
+    # recalc
+    est_g2 = max(44, max_digits * (fs * CHAR_RATIO) + 20)
+    est_w2 = A4_W - est_g2 - 12 - PAD_R
+    fs = max(min_fs, min(base_fs, est_w2 / (max_chars * CHAR_RATIO)))
+    return round(fs, 1)
 
 
-def gen_svg_page(pg_lines, start_ln, page_num, total_pages, total_lines,
-                 fname, font_key, fs, lh, cw, gutter, code_x, code_w,
-                 baseline_ofs, is_truncated_width):
-    """Generate an A4 SVG page with syntax-highlighted code."""
-    font_stack = FONT_FAMILIES.get(font_key, FONT_FAMILIES['cascadia'])
-    ff_sans = 'Arial,Helvetica,sans-serif'
+def gen_svg_page(display_lines, total_lines, page_num, total_pages,
+                 fname, font_key, fs, cw, lh, gutter, code_x, code_w, baseline_ofs):
+    fn = FONT_NAMES.get(font_key, 'Cascadia Code')
+    font_family = '"' + fn + '","Fira Code","Consolas","Courier New",monospace'
+    font_name = fn
+    ff_sans = 'Arial, Helvetica, sans-serif'
+    wrap_px = WRAP_IDENT * cw
 
-    out = []
-    out.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {A4_W} {A4_H}">')
-    out.append(f'<defs>')
-    out.append(f'  <clipPath id="pageClip"><rect x="0" y="0" width="{A4_W}" height="{A4_H}"/></clipPath>')
-    out.append(f'</defs>')
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {A4_W} {A4_H}">']
+    out.append('<defs>')
+    out.append(f'<clipPath id="pageClip"><rect x="0" y="0" width="{A4_W}" height="{A4_H}"/></clipPath>')
+    out.append(f'<clipPath id="codeClip"><rect x="{code_x}" y="{PAD_T}" width="{code_w}" height="{CONTENT_H}"/></clipPath>')
+    out.append('</defs>')
     out.append(f'<g clip-path="url(#pageClip)">')
 
-    # Background
     out.append(f'<rect width="{A4_W}" height="{A4_H}" fill="{BG}"/>')
-
-    # Header bar
     out.append(f'<rect x="0" y="0" width="{A4_W}" height="{HDR_H}" fill="{HDR_BG}"/>')
     out.append(f'<line x1="0" y1="{HDR_H}" x2="{A4_W}" y2="{HDR_H}" stroke="{HDR_BD}" stroke-width="1.5"/>')
 
-    # Header text: file name + page info + font info
-    font_label = font_key.capitalize()
-    out.append(
-        f'<text x="20" y="24" fill="#343a40" font-size="16" font-family="{ff_sans}" font-weight="700">UD83DUDC84 {fname}</text>')
-    out.append(
-        f'<text x="20" y="44" fill="#868e96" font-size="11" font-family="{ff_sans}">'
-        f'第 {page_num} 页 · 共 {total_pages} 页 · {total_lines} 行 · {font_label} {fs}px</text>')
+    fl = font_key.capitalize()
+    out.append(f'<text x="20" y="24" fill="#343a40" font-size="16" font-family="{ff_sans}" font-weight="700">FILE {fname}</text>')
+    out.append(f'<text x="20" y="44" fill="#868e96" font-size="11" font-family="{ff_sans}">Pg {page_num}/{total_pages}  Lns {total_lines}  Font {fl} {fs}px</text>')
 
-    # Right-side truncation warning in header
-    if is_truncated_width:
-        out.append(
-            f'<text x="{A4_W - 20}" y="24" fill="{TRUNC_CLR}" font-size="11" font-family="{ff_sans}" text-anchor="end">'
-            f'✂ 行过长已截断</text>')
+    out.append(f'<rect x="0" y="{HDR_H}" width="{gutter+8}" height="{A4_H-HDR_H}" fill="{GT_BG}"/>')
+    out.append(f'<line x1="{gutter+8}" y1="{HDR_H}" x2="{gutter+8}" y2="{A4_H}" stroke="{GT_BD}" stroke-width="1"/>')
 
-    # Gutter (line number background)
-    out.append(f'<rect x="0" y="{HDR_H}" width="{gutter + 8}" height="{A4_H - HDR_H}" fill="{GT_BG}"/>')
-    out.append(f'<line x1="{gutter + 8}" y1="{HDR_H}" x2="{gutter + 8}" y2="{A4_H}" stroke="{GT_BD}" stroke-width="1"/>')
-
-    # Code content area clip
-    out.append(f'<clipPath id="codeClip"><rect x="{PAD_L}" y="{PAD_T}" width="{code_w}" height="{CONTENT_H}"/></clipPath>')
-    out.append(f'<g clip-path="url(#codeClip)">')
-
-    # Render each line
-    for idx, line in enumerate(pg_lines):
-        line_y = PAD_T + idx * lh
-        text_baseline = line_y + baseline_ofs
-        ln = start_ln + idx
-
-        # Line number
-        out.append(
-            f'<text x="{gutter - 8}" y="{text_baseline:.1f}" fill="{LN_COLOR}" '
-            f'text-anchor="end" font-size="{fs - 1}" font-family="{font_stack}">{ln}</text>')
-
-        if not line.strip():
+    # LINE NUMBERS - rendered BEFORE codeClip, always visible
+    for idx, (tokens, is_cont, src_ln, depth) in enumerate(display_lines):
+        if not src_ln:
             continue
+        ly = PAD_T + idx * lh
+        tb = ly + baseline_ofs
+        out.append(f"<text x=\"{gutter-8}\" y=\"{tb:.1f}\" fill=\"{LN_COLOR}\" text-anchor=\"end\" font-size=\"{fs-1}\" font-family=\'{font_family}\'>{src_ln}</text>")
 
-        # Tokenize and render with proper tab-stop handling
-        toks = tokenize(line)
-        tx = code_x
-        for val, typ in toks:
+    # CODE - rendered INSIDE codeClip (clips right-side overflow only)
+    out.append(f'<g clip-path="url(#codeClip)">')
+    for idx, (tokens, is_cont, src_ln, depth) in enumerate(display_lines):
+        ly = PAD_T + idx * lh
+        tb = ly + baseline_ofs
+        start_x = code_x + depth * TAB_WIDTH * cw if src_ln else code_x + depth * TAB_WIDTH * cw + wrap_px
+        tx = start_x
+        seen_code = False
+        for val, typ in tokens:
             if typ == 'space':
+                if not seen_code:
+                    continue  # skip leading spaces (indent handled by depth)
                 for ch in val:
                     if ch == '\t':
-                        cur_col = int(round(tx / cw))
-                        next_stop = ((cur_col // TAB_WIDTH) + 1) * TAB_WIDTH
-                        tx = next_stop * cw
+                        col = int(round((tx - start_x) / cw))
+                        ns = ((col // TAB_WIDTH) + 1) * TAB_WIDTH
+                        tx = start_x + ns * cw
                     else:
                         tx += cw
             else:
+                seen_code = True
                 c = CO.get(typ, '#212529')
-                e = val.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                out.append(
-                    f'<text x="{tx:.1f}" y="{text_baseline:.1f}" fill="{c}" '
-                    f'font-size="{fs}" font-family="{font_stack}">{e}</text>')
+                e = val.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+                out.append(f"<text x=\"{tx:.1f}\" y=\"{tb:.1f}\" fill=\"{c}\" font-size=\"{fs}\" font-family=\'{font_family}\'>{e}</text>")
                 tx += len(val) * cw
+    out.append('</g>')  # end codeClip
 
-    out.append('</g>')  # end code clip
-
-    # Truncation indicator for individual lines that exceed content width
-    for idx, line in enumerate(pg_lines):
-        raw = line.rstrip('\n').rstrip('\r')
-        display_len = 0
-        for ch in raw:
-            if ch == '\t':
-                display_len += TAB_WIDTH - (display_len % TAB_WIDTH)
-            else:
-                display_len += 1
-        if display_len * cw > code_w:
-            line_y = PAD_T + idx * lh
-            tb = line_y + baseline_ofs
-            marker_x = code_x + code_w - cw
-            out.append(
-                f'<text x="{marker_x:.1f}" y="{tb:.1f}" fill="{TRUNC_CLR}" '
-                f'font-size="{fs}" font-family="{font_stack}" font-weight="bold">…</text>')
-
-    # Footer page number
-    out.append(
-        f'<text x="{A4_W // 2}" y="{A4_H - 10}" text-anchor="middle" '
-        f'fill="#adb5bd" font-size="10" font-family="{ff_sans}">- {page_num} -</text>')
-
-    out.append('</g>')  # end pageClip
-    out.append('</svg>')
+    out.append(f'<text x="{A4_W//2}" y="{A4_H-10}" text-anchor="middle" fill="#adb5bd" font-size="10" font-family="{ff_sans}">- {page_num} -</text>')
+    out.append('</g></svg>')
     return '\n'.join(out)
 
 
-# ===== MAIN LOOP =====
+# ===== MAIN =====
 BASE = os.getcwd()
-
 for fname in FILES:
     src = os.path.join(BASE, fname)
     if not os.path.exists(src):
         print(f'SKIP {fname}')
         continue
-
     with open(src, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    total = len(lines)
+        lines = [l.rstrip('\r\n') for l in f.readlines()]
 
-    # Compute optimal font size for this file
-    fs = compute_optimal_font(lines, FONT_SIZE, MIN_FONT_SIZE, LINE_HEIGHT_RATIO)
+    all_tokens = tokenize_full(lines)
+    fs = compute_optimal_font(lines, FONT_SIZE, MIN_FONT_SIZE)
+    fs, cw, lh, gutter, code_x, code_w, baseline_ofs = compute_layout(lines, fs)
+    lpp = max(1, int(CONTENT_H / lh))
 
-    # Compute layout constants
-    _, cw, lh, gutter, code_x, code_w, baseline_ofs = \
-        compute_layout(lines, fs, LINE_HEIGHT_RATIO)
+    depths = compute_indent_levels(lines, all_tokens)
+    display_lines = []
+    for idx, toks in enumerate(all_tokens):
+        dep = depths[idx]
+        # Available width accounts for depth-based indent
+        avail_w = code_w - dep * TAB_WIDTH * cw
+        wrapped = wrap_line_tokens(toks, avail_w, cw, WRAP_IDENT * cw)
+        for i, (seg, isc) in enumerate(wrapped):
+            display_lines.append((seg, isc, idx+1 if i == 0 else None, dep))
 
-    # Compute lines per page from available content height
-    lines_per_page = max(1, int(CONTENT_H / lh))
-
-    # Check if any line exceeds the content width (for truncation warning)
-    any_truncated = False
-    for line in lines:
-        raw = line.rstrip('\n').rstrip('\r')
-        dl = sum(TAB_WIDTH - (i % TAB_WIDTH) if ch == '\t' else 1
-                 for i, ch in enumerate(raw))
-        if dl * cw > code_w:
-            any_truncated = True
-            break
-
-    # Split into pages
-    np = (total + lines_per_page - 1) // lines_per_page
+    td = len(display_lines)
+    np = (td + lpp - 1) // lpp
     out_dir = os.path.join(BASE, fname + '_images')
     os.makedirs(out_dir, exist_ok=True)
 
-    # Generate SVGs
-    for p in range(1, np + 1):
-        s = (p - 1) * lines_per_page
-        e = min(s + lines_per_page, total)
-        svg = gen_svg_page(
-            lines[s:e], s + 1, p, np, total, fname,
-            FONT_KEY, fs, lh, cw, gutter, code_x, code_w,
-            baseline_ofs, any_truncated
-        )
+    for p in range(1, np+1):
+        s = (p-1) * lpp
+        e = min(s + lpp, td)
+        svg = gen_svg_page(display_lines[s:e], len(lines), p, np, fname,
+                           FONT_KEY, fs, cw, lh, gutter, code_x, code_w, baseline_ofs)
         with open(os.path.join(out_dir, f'code_page_{p}.svg'), 'w', encoding='utf-8') as f:
             f.write(svg)
 
-    print(f'{fname}: {total} lines, font={fs}px, {lines_per_page} ln/page, {np} pages -> SVG OK')
+    wraps = td - len(lines)
+    print(f'{fname}: {len(lines)} src -> {td} disp ({wraps} wraps), font={fs}px, {lpp} ln/pg, {np} pgs -> SVG OK')
 
-    # Convert SVGs to PNGs via node + @resvg/resvg-js
-    js = (
-        'const fs=require("fs");const{Resvg}=require("@resvg/resvg-js");'
-        'const dir=' + json.dumps(out_dir.replace('\\', '\\\\')) + ';'
-        'for(let p=1;p<=' + str(np) + ';p++){'
-        'const s=dir+"\\\\code_page_"+p+".svg";'
-        'const pn=dir+"\\\\code_page_"+p+".png";'
-        'try{const d=fs.readFileSync(s,"utf8");const r=new Resvg(d,{background:"#ffffff"});'
-        'const b=r.render();fs.writeFileSync(pn,b.asPng())}'
-        'catch(e){console.log("  ERR:"+p+" "+e.message)}}'
-    )
+    js = ('const fs=require("fs");const{Resvg}=require("@resvg/resvg-js");'
+          'const dir=' + json.dumps(out_dir.replace('\\','\\\\')) + ';'
+          'for(let p=1;p<='+str(np)+';p++){'
+          'const s=dir+"\\\\code_page_"+p+".svg";'
+          'const pn=dir+"\\\\code_page_"+p+".png";'
+          'try{const d=fs.readFileSync(s,"utf8");const r=new Resvg(d,{background:"#ffffff"});'
+          'const b=r.render();fs.writeFileSync(pn,b.asPng())}'
+          'catch(e){console.log("  ERR:"+p+" "+e.message)}}')
     subprocess.run(['node', '-e', js], check=True)
     print(f'{fname}: PNG OK')
 
-    # Merge PNGs into a single PDF via img2pdf
     import img2pdf
-    png_files = sorted(
-        [os.path.join(out_dir, f) for f in os.listdir(out_dir) if f.endswith('.png')],
-        key=lambda x: int(os.path.basename(x).replace('code_page_', '').replace('.png', ''))
-    )
-    pdf_path = os.path.join(BASE, fname + '.pdf')
+    pngs = sorted([os.path.join(out_dir,f) for f in os.listdir(out_dir) if f.endswith('.png')],
+                  key=lambda x: int(os.path.basename(x).replace('code_page_','').replace('.png','')))
+    pdf_path = os.path.join(BASE, fname+'.pdf')
     with open(pdf_path, 'wb') as f:
-        f.write(img2pdf.convert(png_files))
-    kb = os.path.getsize(pdf_path) // 1024
-    print(f'{fname}: PDF -> {pdf_path} ({kb}KB)')
+        f.write(img2pdf.convert(pngs))
+    print(f'{fname}: PDF -> {pdf_path} ({os.path.getsize(pdf_path)//1024}KB)')
 
 print('\n=== All done! ===')
