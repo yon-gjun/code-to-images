@@ -9,11 +9,13 @@ description: "Convert code files to A4-ratio PNG/SVG images with line numbers an
 
 ---
 
-📖 **中文** · [English](#english)
+📖 [中文](#chinese) · [English](#english)
 
 ---
 
-<h2 id="中文">📖 中文说明</h2>
+## 中文说明 / Chinese
+
+> 🇨🇳 中文 | <a href="#chinese">中文</a> · <a href="#english">English</a>
 
 将源代码文件转换为多页 A4 比例图片（SVG+PNG），然后合并为一个 PDF。
 
@@ -58,7 +60,9 @@ pip install img2pdf
 
 ---
 
-<h1 id="english">🇬🇧 English</h1>
+## English / English
+
+> 🇬🇧 English | <a href="#chinese">中文</a> · <a href="#english">English</a>
 
 Convert source code files into multi-page A4-ratio images (SVG+PNG), then merge into a single PDF.
 

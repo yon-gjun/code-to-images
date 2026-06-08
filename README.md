@@ -7,11 +7,13 @@
 
 ---
 
-📖 **中文** · [English](#english)
+📖 [中文](#chinese) · [English](#english)
 
 ---
 
-<h2 id="中文">📖 中文说明</h2>
+## 中文说明 / Chinese
+
+> 🇨🇳 中文 | <a href="#chinese">中文</a> · <a href="#english">English</a>
 
 将源代码文件（`.c`、`.h`、`.py`、`.js` 等）转换为带**行号**和**语法高亮**的 A4 比例图片，自动合并为一个 PDF。
 
@@ -94,7 +96,9 @@ filename.c.pdf           ← 最终 PDF
 
 ---
 
-<h1 id="english">🇬🇧 English</h1>
+## English / English
+
+> 🇬🇧 English | <a href="#chinese">中文</a> · <a href="#english">English</a>
 
 > Convert source code files into A4 images with line numbers and syntax highlighting, then merge to PDF.
 
