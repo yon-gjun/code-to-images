@@ -5,7 +5,7 @@ description: "Convert code files to A4-ratio PNG/SVG images with line numbers an
 
 # Code → A4 图片 + PDF / A4 Images + PDF
 
-**v2.0.2** — Brace-depth indentation · Auto word-wrapping
+**v2.0.5** — Brace-depth indentation · Auto word-wrapping
 
 ---
 
@@ -15,7 +15,7 @@ description: "Convert code files to A4-ratio PNG/SVG images with line numbers an
 
 ## 中文说明 / Chinese
 
-> 🇨🇳 中文 | <a href="#chinese">中文</a> · <a href="#english">English</a>
+> 🇨🇳 中文 | [中文](#chinese)
 
 将源代码文件转换为多页 A4 比例图片（SVG+PNG），然后合并为一个 PDF。
 
@@ -62,7 +62,7 @@ pip install img2pdf
 
 ## English / English
 
-> 🇬🇧 English | <a href="#chinese">中文</a> · <a href="#english">English</a>
+> 🇬🇧 English | [中文](#chinese)
 
 Convert source code files into multi-page A4-ratio images (SVG+PNG), then merge into a single PDF.
 

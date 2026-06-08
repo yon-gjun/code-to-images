@@ -3,7 +3,7 @@
 > 将源代码文件转换为带行号 + 语法高亮的 A4 图片，并合并为 PDF。
 > Convert source code files into A4 images with line numbers, syntax highlighting, then merge to PDF.
 
-**v2.0.2** — Brace-depth indentation · Auto word-wrapping · Bilingual docs
+**v2.0.5** — Brace-depth indentation · Auto word-wrapping · Bilingual docs
 
 ---
 
@@ -13,7 +13,7 @@
 
 ## 中文说明 / Chinese
 
-> 🇨🇳 中文 | <a href="#chinese">中文</a> · <a href="#english">English</a>
+> 🇨🇳 中文 | [English](#english)
 
 将源代码文件（`.c`、`.h`、`.py`、`.js` 等）转换为带**行号**和**语法高亮**的 A4 比例图片，自动合并为一个 PDF。
 
@@ -98,7 +98,7 @@ filename.c.pdf           ← 最终 PDF
 
 ## English / English
 
-> 🇬🇧 English | <a href="#chinese">中文</a> · <a href="#english">English</a>
+> 🇬🇧 English | [中文](#chinese)
 
 > Convert source code files into A4 images with line numbers and syntax highlighting, then merge to PDF.
 
