@@ -5,7 +5,7 @@ description: "Convert code files to A4-ratio PNG/SVG images with line numbers an
 
 # Code → A4 图片 + PDF / A4 Images + PDF
 
-**v2.0.5** — Brace-depth indentation · Auto word-wrapping
+**v2.1.0** — 多语言自动识别 · 忠实缩进 · Auto word-wrapping
 
 ---
 
@@ -21,15 +21,16 @@ description: "Convert code files to A4-ratio PNG/SVG images with line numbers an
 
 ### 功能
 
+- ✅ **多语言自动识别** — 按扩展名自动选择语法规则（Python/C/C++/Java/JS/Go/Rust/Ruby/Shell/Lua/SQL/PHP/C#/CSS/HTML/JSON/YAML 等）
 - ✅ **行号** — 自适应装订线宽度
 - ✅ **语法高亮** — 关键字、寄存器、宏、数字、字符串、注释分别着色
 - ✅ **6 种等宽字体** — Cascadia Code / Fira Code / JetBrains Mono / Consolas / Courier New / Source Code Pro
 - ✅ **字号自动适配** — 根据最长行自动缩放，填满 A4 宽度
 - ✅ **每页行数自适应** — 根据字号和行高自动计算
-- ✅ **大括号深度缩进** — 按 `{}` 嵌套层级决定缩进，每级 4 字符宽度
+- ✅ **忠实缩进** — 保留源码实际前导空格 / Tab，C 风格大括号与 Python 风格空格缩进都正确呈现
 - ✅ **代码超宽自动换行** — 在 `;,(){}[]` 标点后折行，续行不产生新行号
 - ✅ **Tab 制表位** — 正确按制表位对齐
-- ✅ **多行注释识别** — `/* */` 跨界注释完整处理
+- ✅ **多行注释识别** — `/* */`、`<!-- -->`、`--[[ ]]` 等跨界注释完整处理
 - ✅ **固定 A4 比例** — 794×1123px (96 DPI)
 - ✅ **PDF 输出** — 每个源文件一份 PDF
 
@@ -68,15 +69,16 @@ Convert source code files into multi-page A4-ratio images (SVG+PNG), then merge 
 
 ### Features
 
+- ✅ **Multi-language auto-detection** — Picks syntax rules by extension (Python/C/C++/Java/JS/Go/Rust/Ruby/Shell/Lua/SQL/PHP/C#/CSS/HTML/JSON/YAML & more)
 - ✅ **Line numbers** — Adaptive gutter width
 - ✅ **Syntax highlighting** — Keywords, registers, macros, numbers, strings, comments
 - ✅ **6 monospace fonts** — Cascadia Code / Fira Code / JetBrains Mono / Consolas / Courier New / Source Code Pro
 - ✅ **Auto font size** — Scales to fill A4 width based on longest line
 - ✅ **Auto lines per page** — Computed from font size and line height
-- ✅ **Brace-depth indentation** — Indent level by `{}` nesting, each level = 4 char widths
+- ✅ **Faithful indentation** — Preserves actual leading whitespace / tabs for both brace-based and space-based languages
 - ✅ **Auto word-wrapping** — Breaks after `;,(){}[]`, continuation lines get no new line number
 - ✅ **Tab stops** — Proper tab alignment
-- ✅ **Multi-line comments** — Full `/* */` cross-line support
+- ✅ **Multi-line comments** — Full `/* */`, `<!-- -->`, `--[[ ]]` cross-line support
 - ✅ **Fixed A4 ratio** — 794×1123px (96 DPI)
 - ✅ **PDF output** — One PDF per source file
 
@@ -113,26 +115,35 @@ Save as `gen_code_pdfs.py` and run with `python gen_code_pdfs.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Batch convert code files -> A4 images + PDF. One PDF per source file."""
+"""Batch convert code files -> A4 images + PDF. Multi-language auto-detection."""
 import os, sys, subprocess, json
 
 # ===== CONFIG =====
-FILES = [/* List source files here */]
+# Language is auto-detected from each file's extension (see LANG / EXT2LANG below).
+FILES = [/* List source files here, e.g. 'main.c', 'game.py', 'app.js' */]
 FONT_KEY = '***'   # cascadia | firacode | jetbrains | consolas | courier | sourcecode
 FONT_SIZE = 14; LINE_HEIGHT_RATIO = 1.65; TAB_WIDTH = 4; MIN_FONT_SIZE = 7; WRAP_IDENT = 2
+NODE_EXE = os.environ.get('NODE_EXE', 'node')   # full path to node if not on PATH
 
 FONT_NAMES = {'cascadia':'Cascadia Code','firacode':'Fira Code','jetbrains':'JetBrains Mono',
     'consolas':'Consolas','courier':'Courier New','sourcecode':'Source Code Pro'}
 A4_W, A4_H = 794, 1123; HDR_H = 60; PAD_R = 36; PAD_T = 72; PAD_B = 28
 CONTENT_H = A4_H - PAD_T - PAD_B; CHAR_RATIO = 0.60; WRAP_PUNCT = set(';,(){}[]')
-KW = {'void','char','int','u8','u16','u32','uchar','unsigned','for','if','else','while',
-      'switch','case','break','return','static','bit','sbit','xdata','idata','code','interrupt',
-      'do','default','continue','struct','typedef','enum','const','#ifndef','#define','#endif','#ifdef','extern'}
-RG = {'P0','P1','P2','P3','P4','P5','P6','P7','RST','SCLK','IO','SCK'}
-CO = {'keyword':'#d63384','register':'#e8590c','macro':'#099268',
+CO = {'keyword':'#d63384','register':'#e8590c','macro':'#9c36b5',
       'number':'#2b8a3e','string':'#099268','comment':'#868e96','var':'#1971c2','text':'#212529'}
 BG='#ffffff'; HDR_BG='#f1f3f5'; HDR_BD='#dee2e6'; GT_BG='#f8f9fa'; GT_BD='#e9ecef'; LN_COLOR='#868e96'
 
-# [Full script at: https://github.com/yon-gjun/code-to-images/blob/master/gen_code_pdfs.py]
-# Run the script directly from the repo for the complete, tested version.
+# Per-language rules (keyword set, comment styles, string quotes, ...).
+LANG = {
+    'python': {'name':'Python','kw':{'def','class','import','from','return','if','for',...},
+               'sp':set(),'hash':'comment','slash':False,'dash':False,'block':None,'quotes':'"\'','backtick':False},
+    'c':      {'name':'C','kw':{'void','char','int','for','if','while',...},'sp':{'P0',...,'P7','RST'},
+               'hash':'macro','slash':True,'dash':False,'block':('/*','*/'),'quotes':'"\'','backtick':False},
+    # ... js / java / go / rust / ruby / shell / lua / sql / php / c# / css / html / json / yaml
+}
+EXT2LANG = {'.py':'python', '.c':'c', '.h':'c', '.cpp':'c++', '.java':'java', '.js':'js', '.go':'go',
+            '.rs':'rust', '.rb':'ruby', '.sh':'shell', '.lua':'lua', '.sql':'sql', '.php':'php',
+            '.cs':'c#', '.css':'css', '.html':'html', '.xml':'html', '.json':'json', '.yaml':'yaml'}
+
+# [Full script with LANG/EXT2LANG tables at: gen_code_pdfs.py (local, v2.1.0)]
 ```
