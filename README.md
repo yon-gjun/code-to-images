@@ -3,7 +3,7 @@
 > 将源代码文件转换为带行号 + 语法高亮的 A4 图片，并合并为 PDF。
 > Convert source code files into A4 images with line numbers, syntax highlighting, then merge to PDF.
 
-**v2.2.0** — 49 种语言自动识别 · 忠实缩进 · 自动换行 · 双语文档 / 49-language auto-detection · faithful indentation · auto word-wrapping · bilingual docs
+**v2.3.0** — 49 种语言自动识别 · 按编辑器主题配色（11 族） · 忠实缩进 · 自动换行 · 双语文档 / 49-language auto-detection · per-editor color families (11) · faithful indentation · auto word-wrapping · bilingual docs
 
 ---
 
@@ -22,6 +22,9 @@
 - ✅ **49 种语言自动识别** — 按扩展名 / 文件名 / 内容自动选择语法规则（含 `.m` 内容嗅探与 `Makefile`/`Dockerfile`/`CMakeLists.txt` 文件名识别）
 - ✅ **行号** — 自适应装订线宽度（千行文件自动加宽）
 - ✅ **语法高亮** — 关键字、寄存器/特殊标识符、宏、数字、字符串、变量、标签、注释分别着色
+- ✅ **按编辑器主题配色** — 49 种语言各自归到 11 个「编辑器亮色族」（VS Code / IntelliJ / Xcode / Visual Studio / Keil / Chrome / MATLAB / RStudio / TeXstudio / Arduino / 微信暖色），打印省墨且贴近各语言主流编辑器观感（见 [配色方案](#color-families-配色方案)）
+- ✅ **小程序配色** — `.wxml` / `.wxss` 自动套微信开发者工具暖色（标签红粉 / 属性名紫 / 字符串蓝 / `{{}}` 橙 / 注释绿）
+- ✅ **HTML 内嵌 CSS/JS 分区分词** — `.html` 里 `<style>` 块按 CSS 规则、`<script>` 块按 JS 规则逐行高亮，整页共用 Chrome 色表，还原 Chrome 源码视图
 - ✅ **多行注释** — `/* */`、`<!-- -->`、`--[[ ]]`、`{- -}`、`#= =#`、`(* *)`、`{ }` 等跨行注释完整灰显
 - ✅ **三引号字符串** — Python / Julia / 仓颉的 `"""` `'''` 跨行字符串
 - ✅ **语言特性高亮** — HTML/XML 标签、`@` 注解与指令、`$` 变量（含 `${}`/`$()`）、Makefile 目标行、YAML 键、Markdown 标题
@@ -43,6 +46,28 @@
 **标记 / 配置 / 数据**：Java (`.java`)、C# (`.cs`)、Groovy (`.groovy .gradle`)、CSS (`.css .scss .less`)、HTML/XML (`.html .htm .xhtml .xml .svg .vue`)、JSON (`.json .jsonc .json5`)、YAML (`.yml .yaml`)、INI/TOML (`.ini .cfg .conf .toml .properties`)、Markdown (`.md .markdown`)、LaTeX (`.tex .sty .cls`)、SQL (`.sql`)、Makefile (`Makefile`*)、Dockerfile (`Dockerfile`*)、CMake (`CMakeLists.txt`* `.cmake`)
 
 > \* 特殊识别：`.m` 文件内容嗅探（含 `@interface`/`#import`/`NSString` 视为 Objective-C，否则 MATLAB）；`Makefile`/`Dockerfile`/`CMakeLists.txt` 按文件名识别。未识别的扩展名回退到通用配置，保证仍可正常出图。
+
+### 配色方案 / Color families
+
+默认配色按「每种语言最主流的编辑器」的**亮色主题**着色，全部白底（打印省墨）。49 种语言被归到 **11 个配色族**，同一族共用一套色表；也可整族替换或按语言单独覆盖。
+
+| 配色族 | 参考编辑器·主题 | 主要语言 |
+|--------|---------------|----------|
+| **VS Code**（Light+） | Visual Studio Code | Python、Go、Rust、TypeScript、Shell、Lua、Perl、JSON、YAML、SQL、Solidity… |
+| **IntelliJ**（亮） | IDEA / CLion / PyCharm / PhpStorm | Java、C++、Ruby、PHP、Kotlin、Dart、Scala、Haskell、Pascal、Groovy、Batch |
+| **Xcode** | Xcode Default | Swift、Objective-C |
+| **Visual Studio**（2022 Light） | VS2022 | C#、F#、Visual Basic |
+| **Keil μVision** | Keil 经典（51 / STM32） | C、Assembly |
+| **Chrome DevTools** | Chrome 源码视图 | HTML、CSS、JavaScript |
+| **MATLAB** | MATLAB 默认 | MATLAB |
+| **RStudio**（亮） | RStudio Light | R |
+| **TeXstudio**（亮） | TeXstudio | LaTeX |
+| **Arduino IDE** | Arduino 默认 | Arduino (`.ino`) |
+| **微信暖色** | 微信开发者工具 | WXML、WXSS（小程序） |
+
+> 归属在 `gen_code_pdfs.py` 的 `FAMILY_PALETTES`（色表）+ `LANG_TO_FAMILY`（语言→族）中定义。改某语言配色：改 `FAMILY_PALETTES[族]` 的对应 token 色；把某语言挪到别的族：改 `LANG_TO_FAMILY`。
+>
+> 特例：`.wxml` / `.wxss` 统一走微信暖色；`.html` / `.htm` / `.xhtml` 走 Chrome 族并对内嵌 `<style>`/`<script>` 分区分词（`<style>` 用 CSS 规则、`<script>` 用 JS 规则，共用 Chrome 色表）；独立 `.css` / `.js` 文件整篇为单一语言，不受分区影响。
 
 ### 安装依赖
 
@@ -157,7 +182,10 @@ filename.c.pdf           ← 最终 PDF
 
 - ✅ **49-language auto-detection** — picks syntax rules by extension / basename / content sniff (incl. `.m` content sniffing and `Makefile`/`Dockerfile`/`CMakeLists.txt` basename detection)
 - ✅ **Line numbers** — Adaptive gutter width (auto-widens for 1000+ line files)
-- ✅ **Syntax highlighting** — Keywords, registers/special identifiers, macros, numbers, strings, variables, tags, comments
+- ✅ **Syntax highlighting** — keywords, registers/special identifiers, macros, numbers, strings, variables, tags, comments
+- ✅ **Per-editor color families** — each of the 49 languages maps to one of 11 "editor light-theme" families (VS Code / IntelliJ / Xcode / Visual Studio / Keil / Chrome / MATLAB / RStudio / TeXstudio / Arduino / WeChat-warm), ink-friendly white background that mirrors each language's mainstream editor (see [Color families](#color-families))
+- ✅ **Mini-program palette** — `.wxml` / `.wxss` automatically wear the WeChat DevTools warm scheme (tag pink / attr purple / string blue / `{{}}` orange / comment green)
+- ✅ **Zoned tokenization for HTML** — inside `.html`, `<style>` blocks are highlighted with CSS rules and `<script>` blocks with JS rules, all under the single Chrome palette, reproducing the Chrome source-view look
 - ✅ **Multi-line comments** — `/* */`, `<!-- -->`, `--[[ ]]`, `{- -}`, `#= =#`, `(* *)`, `{ }` cross-line support
 - ✅ **Triple-quoted strings** — `"""` `'''` for Python / Julia / Cangjie
 - ✅ **Language-specific tokens** — HTML/XML tags, `@` annotations & directives, `$` variables (incl. `${}`/`$()`), Makefile targets, YAML keys, Markdown headings
@@ -179,6 +207,28 @@ filename.c.pdf           ← 最终 PDF
 **Markup / config / data**: Java (`.java`), C# (`.cs`), Groovy (`.groovy .gradle`), CSS (`.css .scss .less`), HTML/XML (`.html .htm .xhtml .xml .svg .vue`), JSON (`.json .jsonc .json5`), YAML (`.yml .yaml`), INI/TOML (`.ini .cfg .conf .toml .properties`), Markdown (`.md .markdown`), LaTeX (`.tex .sty .cls`), SQL (`.sql`), Makefile (`Makefile`*), Dockerfile (`Dockerfile`*), CMake (`CMakeLists.txt`* `.cmake`)
 
 > \* Special detection: `.m` files are sniffed (files with `@interface`/`#import`/`NSString` are Objective-C, otherwise MATLAB); `Makefile`/`Dockerfile`/`CMakeLists.txt` are detected by basename. Unknown extensions fall back to a generic config so rendering still succeeds.
+
+### Color families
+
+Default colors follow the **light theme** of each language's mainstream editor, all on a white background (ink-friendly for printing). The 49 languages are grouped into **11 color families**; languages in the same family share one palette. You can override a whole family or a single language.
+
+| Family | Reference editor / theme | Main languages |
+|--------|-------------------------|----------------|
+| **VS Code** (Light+) | Visual Studio Code | Python, Go, Rust, TypeScript, Shell, Lua, Perl, JSON, YAML, SQL, Solidity, … |
+| **IntelliJ** (light) | IDEA / CLion / PyCharm / PhpStorm | Java, C++, Ruby, PHP, Kotlin, Dart, Scala, Haskell, Pascal, Groovy, Batch |
+| **Xcode** | Xcode Default | Swift, Objective-C |
+| **Visual Studio** (2022 Light) | VS2022 | C#, F#, Visual Basic |
+| **Keil μVision** | Keil classic (51 / STM32) | C, Assembly |
+| **Chrome DevTools** | Chrome source view | HTML, CSS, JavaScript |
+| **MATLAB** | MATLAB default | MATLAB |
+| **RStudio** (light) | RStudio Light | R |
+| **TeXstudio** (light) | TeXstudio | LaTeX |
+| **Arduino IDE** | Arduino default | Arduino (`.ino`) |
+| **WeChat warm** | WeChat DevTools | WXML, WXSS (mini-programs) |
+
+> Mappings live in `FAMILY_PALETTES` (palettes) + `LANG_TO_FAMILY` (language → family) inside `gen_code_pdfs.py`. To change a language's colors: edit the token colors in `FAMILY_PALETTES[family]`; to move a language to a different family: edit `LANG_TO_FAMILY`.
+>
+> Special cases: `.wxml` / `.wxss` always use the WeChat warm scheme; `.html` / `.htm` / `.xhtml` use the Chrome family and zoned tokenization (a `<style>` region uses CSS rules, a `<script>` region uses JS rules, both under the Chrome palette). Stand-alone `.css` / `.js` files stay single-language end-to-end and are not affected by zoning.
 
 ### Prerequisites
 

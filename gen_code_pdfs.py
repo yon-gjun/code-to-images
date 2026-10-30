@@ -7,10 +7,10 @@ Multi-language build (v2.2.0):
   - Faithful indentation: the file's actual leading whitespace / tabs are
     preserved (works for both brace-based and space-based languages)
 """
-import os, sys, subprocess, json
+import os, sys, subprocess, json, re
 
 # ===== CONFIG =====
-FILES = ['disp_test.c']          # list of source file names (auto-detected language)
+FILES = ['index.wxss']
 FONT_KEY = 'cascadia'            # cascadia | firacode | jetbrains | consolas | courier | sourcecode
 FONT_SIZE = 14
 LINE_HEIGHT_RATIO = 1.65
@@ -26,7 +26,7 @@ FONT_NAMES = {
     'consolas':'Consolas','courier':'Courier New','sourcecode':'Source Code Pro',
 }
 
-A4_W, A4_H = 794, 1123
+A4_W, A4_H = 2480, 3508  # 300 DPI high-quality for printing
 HDR_H = 60; PAD_R = 36; PAD_T = 72; PAD_B = 28
 CONTENT_H = A4_H - PAD_T - PAD_B
 CHAR_RATIO = 0.60
@@ -34,7 +34,108 @@ WRAP_PUNCT = set(';,(){}[]')
 
 CO = {'keyword':'#d63384','register':'#e8590c','macro':'#9c36b5',
       'number':'#2b8a3e','string':'#099268','comment':'#868e96',
-      'var':'#1971c2','tag':'#0b7285','text':'#212529'}
+      'var':'#1971c2','tag':'#0b7285','text':'#212529',
+      'attr':'#7048e8','expr':'#e8590c'}
+
+# ============================================================================
+# Per-language color families (light-theme, print-friendly, white background)
+# Each language maps to the palette of its primary editor/IDE (Light variant).
+# WXML gets a dedicated WeChat DevTools warm palette; HTML/CSS/JS get Chrome.
+# ============================================================================
+FAMILY_PALETTES = {
+    # VS Code Light+ (most common: Python, Go, Rust, JS, Shell, Lua, Perl, SQL…)
+    'vscode': {
+        'keyword':'#0000FF','register':'#795E26','macro':'#9C27BB',
+        'number':'#098658','string':'#A31515','comment':'#008000',
+        'var':'#267BF6','tag':'#800000','text':'#1E1E1E',
+        'attr':'#39A034','expr':'#098658',
+    },
+    # IntelliJ / CLion / RubyMine / PhpStorm / Kotlin / Scala / Groovy / Pascal
+    'intellij': {
+        'keyword':'#000080','register':'#CC7833','macro':'#9E89CT',
+        'number':'#0451A5','string':'#067D17','comment':'#8C8C8C',
+        'var':'#78307D','tag':'#CC7833','text':'#1E1E1E',
+        'attr':'#0033CC','expr':'#CC7833',
+    },
+    # Xcode Default Light (Swift, Objective-C)
+    'xcode': {
+        'keyword':'#AD3980','register':'#7F5539','macro':'#0B4F79',
+        'number':'#2675CC','string':'#C41A16','comment':'#17754E',
+        'var':'#0B4F79','tag':'#5A5A24','text':'#000000',
+        'attr':'#000000','expr':'#2675CC',
+    },
+    # Visual Studio 2022 Light (C#, F#, VB)
+    'visual_studio': {
+        'keyword':'#0000FF','register':'#800080','macro':'#800080',
+        'number':'#0000FF','string':'#A31515','comment':'#0000FF',
+        'var':'#000000','tag':'#800080','text':'#000000',
+        'attr':'#800080','expr':'#0000FF',
+    },
+    # Keil μVision (C, Assembly — 51/STM32 embedded)
+    'keil': {
+        'keyword':'#0000FF','register':'#CC6600','macro':'#9933CC',
+        'number':'#0066CC','string':'#008800','comment':'#006600',
+        'var':'#000000','tag':'#000000','text':'#000000',
+        'attr':'#000000','expr':'#0066CC',
+    },
+    # Chrome DevTools source view (HTML, CSS, JS — sampled from real screenshots)
+    'chrome': {
+        'keyword':'#0b57d0','register':'#0b57d0','macro':'#0b57d0',
+        'tag':'#062e6f','attr':'#0b57d0','expr':'#b90063','number':'#b90063',
+        'string':'#dc362e','comment':'#146c2e','var':'#0b57d0','text':'#1c1e21',
+    },
+    # MATLAB Default Light
+    'matlab': {
+        'keyword':'#0000CC','register':'#000000','macro':'#000000',
+        'number':'#000000','string':'#006600','comment':'#006600',
+        'var':'#000000','tag':'#000000','text':'#000000',
+        'attr':'#000000','expr':'#000000',
+    },
+    # RStudio Light
+    'rstudio': {
+        'keyword':'#AA0000','register':'#000000','macro':'#000000',
+        'number':'#000000','string':'#007E00','comment':'#007E00',
+        'var':'#000000','tag':'#000000','text':'#000000',
+        'attr':'#000000','expr':'#000000',
+    },
+    # TeXstudio Light
+    'texstudio': {
+        'keyword':'#FF8000','register':'#000000','macro':'#FF8000',
+        'number':'#000000','string':'#000000','comment':'#007E00',
+        'var':'#000000','tag':'#FF8000','text':'#000000',
+        'attr':'#000000','expr':'#000000',
+    },
+    # Arduino IDE Light
+    'arduino': {
+        'keyword':'#FF0000','register':'#0000FF','macro':'#9933CC',
+        'number':'#0000FF','string':'#008800','comment':'#008800',
+        'var':'#000000','tag':'#000000','text':'#000000',
+        'attr':'#000000','expr':'#0000FF',
+    },
+    # WeChat DevTools warm palette (WXML only — user-calibrated)
+    'wxml': {
+        'keyword':'#d6336c','register':'#d6336c','macro':'#d6336c',
+        'tag':'#d6336c','attr':'#7048e8','expr':'#e8590c','number':'#e8590c',
+        'string':'#1d4ed8','comment':'#4e9a06','var':'#e8590c','text':'#b05000',
+    },
+}
+
+# Language key → family
+LANG_TO_FAMILY = {
+    'python':'vscode','js':'chrome','typescript':'vscode','go':'vscode',
+    'rust':'vscode','ruby':'intellij','java':'intellij','shell':'vscode','lua':'vscode',
+    'sql':'vscode','perl':'vscode','php':'intellij','c#':'visual_studio',
+    'css':'chrome','html':'chrome','chrome':'chrome','wxml':'wxml','wxss':'wxml',
+    'json':'vscode','yaml':'vscode','cangjie':'vscode','kotlin':'intellij',
+    'swift':'xcode','dart':'intellij','r':'rstudio','matlab':'matlab',
+    'scala':'intellij','haskell':'intellij','julia':'vscode','zig':'vscode',
+    'groovy':'intellij','powershell':'vscode','batch':'intellij','vb':'visual_studio',
+    'c':'keil','c++':'intellij','arduino':'arduino','makefile':'vscode',
+    'dockerfile':'vscode','ini':'vscode','markdown':'vscode','tex':'texstudio',
+    'cmake':'vscode','solidity':'vscode','erlang':'vscode','elixir':'vscode',
+    'clojure':'vscode','fsharp':'visual_studio','pascal':'intellij',
+    'fortran':'vscode','assembly':'keil','objective-c':'xcode',
+}
 BG='#ffffff'; HDR_BG='#f1f3f5'; HDR_BD='#dee2e6'
 GT_BG='#f8f9fa'; GT_BD='#e9ecef'; LN_COLOR='#868e96'
 
@@ -432,8 +533,27 @@ LANG = {
                    'block':('/*','*/'),'quotes':'"\'','backtick':False},
     'css':        {'name':'CSS','kw':CSS_KW,'sp':CSS_ATTR,'hash':None,'slash':True,'dash':False,
                    'block':('/*','*/'),'quotes':'"\'','backtick':False,'dashident':True},
+    # WXSS: identical rules to CSS (attribute names + values highlight the same
+    # way); it only gets its own key so it can be mapped to the WeChat warm
+    # palette instead of the Chrome one.
+    'wxss':       {'name':'WXSS','kw':CSS_KW,'sp':CSS_ATTR,'hash':None,'slash':True,'dash':False,
+                   'block':('/*','*/'),'quotes':'"\'','backtick':False,'dashident':True},
     'html':       {'name':'HTML','kw':set(),'sp':set(),'hash':None,'slash':False,'dash':False,
                    'block':('<!--','-->'),'quotes':'"\'','backtick':False,'tags':True},
+    # WXML: WeChat mini-program template. Inherits HTML (tag names + <!-- --> + "strings")
+    # plus two extra highlighters so the output matches WeChat DevTools:
+    #   wxattr     -> attribute names in tags (class=, wx:if=, data-id=, confirm-type=)
+    #   wxexpr     -> {{...}} data bindings
+    #   wxattrdash -> allow - and : inside an attribute-name identifier
+    'wxml':       {'name':'WXML','kw':set(),'sp':set(),'hash':None,'slash':False,'dash':False,
+                   'block':('<!--','-->'),'quotes':'"\'','backtick':False,'tags':True,
+                   'wxattr':True,'wxexpr':True,'wxattrdash':True},
+    # Chrome DevTools source-view flavour of HTML: same as 'html' but attribute
+    # names are highlighted (wxattr/wxattrdash) so they can take Chrome's blue.
+    # Only .html/.htm map here; .xml/.svg/.vue keep the plain 'html' rule.
+    'chrome':     {'name':'HTML','kw':set(),'sp':set(),'hash':None,'slash':False,'dash':False,
+                   'block':('<!--','-->'),'quotes':'"\'','backtick':False,'tags':True,
+                   'wxattr':True,'wxattrdash':True},
     'json':       {'name':'JSON','kw':JSON_KW,'sp':set(),'hash':None,'slash':False,'dash':False,
                    'block':None,'quotes':'"\'','backtick':False},
     'yaml':       {'name':'YAML','kw':YAML_KW,'sp':set(),'hash':'comment','slash':False,'dash':False,
@@ -519,8 +639,9 @@ EXT2LANG = {
     '.php':'php','.php3':'php','.php4':'php','.php5':'php','.phtml':'php',
     '.cs':'c#',
     '.css':'css','.scss':'css','.less':'css',
-    '.html':'html','.htm':'html','.xhtml':'html',
-    '.xml':'html','.svg':'html','.vue':'html',
+    '.html':'chrome','.htm':'chrome','.xhtml':'chrome',
+    '.xml':'html','.svg':'html','.vue':'html','.wxml':'wxml',
+    '.wxss':'wxss',
     '.json':'json','.jsonc':'json','.json5':'json',
     '.yml':'yaml','.yaml':'yaml',
     '.cj':'cangjie',
@@ -584,6 +705,24 @@ def detect_cfg(fname, head=None):
     return DEFAULT_CFG
 
 
+def detect_lang_key(fname, head=None):
+    """Return the resolved language key (same logic as detect_cfg, but just the key).
+    Used to pick a per-language color family via LANG_TO_FAMILY -> FAMILY_PALETTES.
+    Returns None for the generic fallback so callers can keep the global CO."""
+    ext = os.path.splitext(fname)[1].lower()
+    key = EXT2LANG.get(ext)
+    if key == 'ambig_m' and head:
+        low = '\n'.join(head[:8]).lower()
+        if ('#import' in low or '@interface' in low or '@implementation'
+                or '@property' in low or 'nsstring' in low):
+            key = 'objective-c'
+        else:
+            key = 'matlab'
+    if not key:
+        key = BASE2LANG.get(os.path.basename(fname).lower())
+    return key if key in LANG else None
+
+
 def display_len(text):
     n = 0
     for ch in text:
@@ -607,7 +746,7 @@ def leading_display(line):
     return n
 
 
-def tokenize_line(line, in_block, in_triple, cfg):
+def tokenize_line(line, in_block, in_triple, in_tag, cfg):
     bstart, bend = cfg.get('block') or ('', '')
     triples = cfg.get('triple') or ()
     t, i, n = [], 0, len(line)
@@ -617,14 +756,14 @@ def tokenize_line(line, in_block, in_triple, cfg):
         else:
             k = -1
         if k < 0:
-            return [(line, 'comment')], True, in_triple
+            return [(line, 'comment')], True, in_triple, False
         t.append((line[:k+len(bend)], 'comment'))
         i = k + len(bend)
         in_block = False
     if in_triple:
         k = line.find(in_triple)
         if k < 0:
-            return t + [(line, 'string')], in_block, in_triple
+            return t + [(line, 'string')], in_block, in_triple, in_tag
         t.append((line[:k+len(in_triple)], 'string'))
         i = k + len(in_triple)
         in_triple = None
@@ -632,7 +771,7 @@ def tokenize_line(line, in_block, in_triple, cfg):
         c = line[i]
         # full-line highlight (Markdown headings)
         if cfg.get('hashline') and i == 0 and line.lstrip().startswith('#'):
-            return t + [(line, cfg['hashline'])], in_block, in_triple
+            return t + [(line, cfg['hashline'])], in_block, in_triple, in_tag
         # colon target: Makefile rules, YAML keys
         if cfg.get('colon_target') and i == 0:
             j = 0
@@ -646,7 +785,7 @@ def tokenize_line(line, in_block, in_triple, cfg):
         if bstart and line[i:i+len(bstart)] == bstart:
             j = line.find(bend, i+len(bstart))
             if j < 0:
-                return t + [(line[i:], 'comment')], True, in_triple
+                return t + [(line[i:], 'comment')], True, in_triple, in_tag
             t.append((line[i:j+len(bend)], 'comment'))
             i = j + len(bend)
             continue
@@ -698,7 +837,25 @@ def tokenize_line(line, in_block, in_triple, cfg):
             if j < n and line[j].isalpha():
                 while j < n and (line[j].isalnum() or line[j] in '-_:'):
                     j += 1
-                t.append((line[i:j], 'tag')); i = j; continue
+                t.append((line[i:j], 'tag')); i = j; in_tag = True; continue
+        # WXML: close of a tag (also handles self-closing /  >). Guarded by wxattr so
+        # that plain HTML/XML/SVG/VUE (tags only, no wxattr) keep their old behavior.
+        if cfg.get('wxattr') and in_tag and c == '>':
+            t.append((c, 'tag')); i += 1; in_tag = False; continue
+        # WXML: {{ }} data-binding expression (element text / unquoted)
+        if cfg.get('wxexpr') and line[i:i+2] == '{{':
+            j = line.find('}}', i+2)
+            if j < 0:
+                t.append((line[i:], 'expr')); i = n; continue
+            t.append((line[i:j+2], 'expr')); i = j + 2; continue
+        # WXML: attribute name inside a tag (class=, wx:if=, data-id=, confirm-type=)
+        if cfg.get('wxattr') and in_tag and (c.isalpha() or c == '_'):
+            j = i
+            if cfg.get('wxattrdash'):
+                while j < n and (line[j].isalnum() or line[j] in ':-_'): j += 1
+            else:
+                while j < n and (line[j].isalnum() or line[j] == '_'): j += 1
+            t.append((line[i:j], 'attr')); i = j; continue
         # @word (annotations, ObjC directives, decorators, Julia macros)
         if cfg.get('atword') and c == '@':
             j = i + 1
@@ -742,13 +899,51 @@ def tokenize_line(line, in_block, in_triple, cfg):
         t.append((c,'text')); i += 1
     if not t:
         t.append(('','space'))
-    return t, in_block, in_triple
+    return t, in_block, in_triple, in_tag
 
 
 def tokenize_full(lines, cfg):
-    result, in_block, in_triple = [], False, None
+    result, in_block, in_triple, in_tag = [], False, None, False
     for line in lines:
-        toks, in_block, in_triple = tokenize_line(line, in_block, in_triple, cfg)
+        toks, in_block, in_triple, in_tag = tokenize_line(line, in_block, in_triple, in_tag, cfg)
+        result.append(toks)
+    return result
+
+
+def _classify_zones(lines):
+    """Per-line region for an HTML file: 'css' inside <style>…</style>,
+    'js' inside <script>…</script>, else 'html'. Opening/closing-tag lines
+    are treated as html (the tag itself is HTML syntax)."""
+    zone = ['html'] * len(lines)
+    open_reg = None
+    for i, ln in enumerate(lines):
+        low = ln.lower()
+        if open_reg:
+            closer = '</style' if open_reg == 'css' else '</script'
+            if closer in low:
+                open_reg = None          # this line holds the closing tag
+                zone[i] = 'html'
+            else:
+                zone[i] = open_reg       # body of the region
+            continue
+        if '<style' in low and '</style' not in low:
+            open_reg = 'css'
+        elif '<script' in low and '</script' not in low:
+            open_reg = 'js'
+        # opening-tag line (or a single-line <style>…</style>) stays 'html'
+    return zone
+
+
+def tokenize_full_zoned(lines, html_cfg, css_cfg, js_cfg):
+    """HTML-file tokenizer that switches rules per line: <style> body -> CSS,
+    <script> body -> JS, everything else -> HTML. Sharing one palette (Chrome),
+    this reproduces Chrome's 'whole file, one theme' look for embedded styles.
+    Cross-line comment state (in_block) is carried across zone boundaries."""
+    zone = _classify_zones(lines)
+    cfgs = {'html': html_cfg, 'css': css_cfg, 'js': js_cfg}
+    result, in_block, in_triple, in_tag = [], False, None, False
+    for i, line in enumerate(lines):
+        toks, in_block, in_triple, in_tag = tokenize_line(line, in_block, in_triple, in_tag, cfgs[zone[i]])
         result.append(toks)
     return result
 
@@ -773,7 +968,7 @@ def wrap_line_tokens(tokens, max_px, cw, indent_px):
         rem_dl = display_len(remaining.rstrip('\r\n'))
         limit_px = max_px if is_first else max_px - indent_px
         if rem_dl * cw <= limit_px:
-            parts.append((tokenize_line(remaining, False, None, DEFAULT_CFG)[0], not is_first))
+            parts.append((tokenize_line(remaining, False, None, False, DEFAULT_CFG)[0], not is_first))
             break
         wrap_pos = -1
         pos = 0
@@ -801,10 +996,10 @@ def wrap_line_tokens(tokens, max_px, cw, indent_px):
             if wrap_pos <= 0 or wrap_pos >= len(remaining):
                 wrap_pos = len(remaining)
         if wrap_pos >= len(remaining):
-            parts.append((tokenize_line(remaining, False, None, DEFAULT_CFG)[0], not is_first))
+            parts.append((tokenize_line(remaining, False, None, False, DEFAULT_CFG)[0], not is_first))
             break
         seg = remaining[:wrap_pos]
-        parts.append((tokenize_line(seg, False, None, DEFAULT_CFG)[0], not is_first))
+        parts.append((tokenize_line(seg, False, None, False, DEFAULT_CFG)[0], not is_first))
         remaining = remaining[wrap_pos:]
         is_first = False
     return parts
@@ -836,7 +1031,9 @@ def compute_optimal_font(lines, base_fs, min_fs):
 
 
 def gen_svg_page(display_lines, total_lines, page_num, total_pages,
-                 fname, lang, font_key, fs, cw, lh, gutter, code_x, code_w, baseline_ofs):
+                 fname, lang, font_key, fs, cw, lh, gutter, code_x, code_w, baseline_ofs,
+                 palette=None):
+    pal = palette if palette is not None else CO
     fn = FONT_NAMES.get(font_key, 'Cascadia Code')
     font_family = '"' + fn + '","Fira Code","Consolas","Courier New",monospace'
     ff_sans = 'Arial, Helvetica, sans-serif'
@@ -887,7 +1084,7 @@ def gen_svg_page(display_lines, total_lines, page_num, total_pages,
                         tx += cw
             else:
                 seen_code = True
-                c = CO.get(typ, '#212529')
+                c = pal.get(typ, '#212529')
                 e = val.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
                 out.append(f"<text x=\"{tx:.1f}\" y=\"{tb:.1f}\" fill=\"{c}\" font-size=\"{fs}\" font-family=\'{font_family}\'>{e}</text>")
                 tx += len(val) * cw
@@ -908,8 +1105,17 @@ for fname in FILES:
     with open(src, 'r', encoding='utf-8') as f:
         lines = [l.rstrip('\r\n') for l in f.readlines()]
     cfg = detect_cfg(fname, lines)
+    lang_key = detect_lang_key(fname, lines)
+    family = LANG_TO_FAMILY.get(lang_key, 'vscode') if lang_key else 'vscode'
+    palette = FAMILY_PALETTES.get(family) or CO
 
     all_tokens = tokenize_full(lines, cfg)
+    # HTML files: switch rules per line so embedded <style> gets CSS highlighting
+    # and <script> gets JS highlighting (all under the same Chrome palette).
+    # Stand-alone .css/.js files are a single language end-to-end and must NOT
+    # go through the zoned path.
+    if lang_key in ('html', 'chrome'):
+        all_tokens = tokenize_full_zoned(lines, cfg, LANG['css'], LANG['js'])
     all_lead = [leading_display(l) for l in lines]
     fs = compute_optimal_font(lines, FONT_SIZE, MIN_FONT_SIZE)
     fs, cw, lh, gutter, code_x, code_w, baseline_ofs = compute_layout(lines, fs)
@@ -934,7 +1140,8 @@ for fname in FILES:
         s = (p-1) * lpp
         e = min(s + lpp, td)
         svg = gen_svg_page(display_lines[s:e], len(lines), p, np, fname, cfg['name'],
-                           FONT_KEY, fs, cw, lh, gutter, code_x, code_w, baseline_ofs)
+                           FONT_KEY, fs, cw, lh, gutter, code_x, code_w, baseline_ofs,
+                           palette)
         with open(os.path.join(out_dir, f'code_page_{p}.svg'), 'w', encoding='utf-8') as f:
             f.write(svg)
 
