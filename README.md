@@ -37,37 +37,45 @@
 - ✅ **固定 A4 比例** — 794×1123px (96 DPI)，每页尺寸统一
 - ✅ **PDF 输出** — 每个源文件一份 PDF
 
+
+
 ### 支持的语言（49 种）
 
 **脚本 / 动态语言**：Python (`.py .pyw`)、JavaScript (`.js .jsx .mjs .cjs`)、TypeScript (`.ts .tsx .mts .cts`)、Ruby (`.rb`)、Perl (`.pl .pm .t`)、PHP (`.php .php3-5 .phtml`)、Lua (`.lua`)、Shell (`.sh .bash .zsh`)、PowerShell (`.ps1 .psm1 .psd1`)、Batch (`.bat .cmd`)、Visual Basic (`.vb .vba .bas`)、R (`.r`)、MATLAB (`.m`*)、Julia (`.jl`)
 
 **编译型 / 系统语言**：C (`.c .h`)、C++ (`.cpp .cc .cxx .hpp .hh .hxx .c++`)、Arduino (`.ino .pde`)、Go (`.go`)、Rust (`.rs`)、Zig (`.zig`)、Swift (`.swift`)、Kotlin (`.kt .kts`)、Dart (`.dart`)、**仓颉 Cangjie (`.cj`)**、Objective-C (`.m`* `.mm`)、Scala (`.scala .sc`)、Haskell (`.hs .lhs`)、Erlang (`.erl .hrl`)、Elixir (`.ex .exs`)、Clojure (`.clj .cljs .cljc .edn`)、F# (`.fs .fsx .fsi`)、Pascal (`.pas .pp`)、Fortran (`.f .f90 .f95 .f03 .f08 .for`)、Assembly (`.asm .s .nasm`)、Solidity (`.sol`)
 
-**标记 / 配置 / 数据**：Java (`.java`)、C# (`.cs`)、Groovy (`.groovy .gradle`)、CSS (`.css .scss .less`)、HTML/XML (`.html .htm .xhtml .xml .svg .vue`)、JSON (`.json .jsonc .json5`)、YAML (`.yml .yaml`)、INI/TOML (`.ini .cfg .conf .toml .properties`)、Markdown (`.md .markdown`)、LaTeX (`.tex .sty .cls`)、SQL (`.sql`)、Makefile (`Makefile`*)、Dockerfile (`Dockerfile`*)、CMake (`CMakeLists.txt`* `.cmake`)
+**标记 / 配置 / 数据**：Java (`.java`)、C# (`.cs`)、Groovy (`.groovy .gradle`)、CSS (`.css .scss .less`)、HTML/XML (`.html .htm .xhtml .xml .svg .vue`)、JSON (`.json .jsonc .json5`)、YAML (`.yml .yaml`)、INI/TOML (`.ini .cfg .conf .toml .properties`)、Markdown (`.md .markdown`)、LaTeX (`.tex .sty .cls`)、SQL (`.sql`)、Makefile (`Makefile`*)、Dockerfile (*`Dockerfile`)、CMake (`CMakeLists.txt`* `.cmake`)
 
-> \* 特殊识别：`.m` 文件内容嗅探（含 `@interface`/`#import`/`NSString` 视为 Objective-C，否则 MATLAB）；`Makefile`/`Dockerfile`/`CMakeLists.txt` 按文件名识别。未识别的扩展名回退到通用配置，保证仍可正常出图。
+>  特殊识别：`.m` 文件内容嗅探（含 `@interface`/`#import`/`NSString` 视为 Objective-C，否则 MATLAB）；`Makefile`/`Dockerfile`/`CMakeLists.txt` 按文件名识别。未识别的扩展名回退到通用配置，保证仍可正常出图。
+
+
 
 ### 配色方案 / Color families
 
 默认配色按「每种语言最主流的编辑器」的**亮色主题**着色，全部白底（打印省墨）。49 种语言被归到 **11 个配色族**，同一族共用一套色表；也可整族替换或按语言单独覆盖。
 
-| 配色族 | 参考编辑器·主题 | 主要语言 |
-|--------|---------------|----------|
-| **VS Code**（Light+） | Visual Studio Code | Python、Go、Rust、TypeScript、Shell、Lua、Perl、JSON、YAML、SQL、Solidity… |
-| **IntelliJ**（亮） | IDEA / CLion / PyCharm / PhpStorm | Java、C++、Ruby、PHP、Kotlin、Dart、Scala、Haskell、Pascal、Groovy、Batch |
-| **Xcode** | Xcode Default | Swift、Objective-C |
-| **Visual Studio**（2022 Light） | VS2022 | C#、F#、Visual Basic |
-| **Keil μVision** | Keil 经典（51 / STM32） | C、Assembly |
-| **Chrome DevTools** | Chrome 源码视图 | HTML、CSS、JavaScript |
-| **MATLAB** | MATLAB 默认 | MATLAB |
-| **RStudio**（亮） | RStudio Light | R |
-| **TeXstudio**（亮） | TeXstudio | LaTeX |
-| **Arduino IDE** | Arduino 默认 | Arduino (`.ino`) |
-| **微信暖色** | 微信开发者工具 | WXML、WXSS（小程序） |
+
+| 配色族                           | 参考编辑器·主题                          | 主要语言                                                             |
+| ----------------------------- | --------------------------------- | ---------------------------------------------------------------- |
+| **VS Code**（Light+）           | Visual Studio Code                | Python、Go、Rust、TypeScript、Shell、Lua、Perl、JSON、YAML、SQL、Solidity… |
+| **IntelliJ**（亮）               | IDEA / CLion / PyCharm / PhpStorm | Java、C++、Ruby、PHP、Kotlin、Dart、Scala、Haskell、Pascal、Groovy、Batch  |
+| **Xcode**                     | Xcode Default                     | Swift、Objective-C                                                |
+| **Visual Studio**（2022 Light） | VS2022                            | C#、F#、Visual Basic                                               |
+| **Keil μVision**              | Keil 经典（51 / STM32）               | C、Assembly                                                       |
+| **Chrome DevTools**           | Chrome 源码视图                       | HTML、CSS、JavaScript                                              |
+| **MATLAB**                    | MATLAB 默认                         | MATLAB                                                           |
+| **RStudio**（亮）                | RStudio Light                     | R                                                                |
+| **TeXstudio**（亮）              | TeXstudio                         | LaTeX                                                            |
+| **Arduino IDE**               | Arduino 默认                        | Arduino (`.ino`)                                                 |
+| **微信暖色**                      | 微信开发者工具                           | WXML、WXSS（小程序）                                                   |
+
 
 > 归属在 `gen_code_pdfs.py` 的 `FAMILY_PALETTES`（色表）+ `LANG_TO_FAMILY`（语言→族）中定义。改某语言配色：改 `FAMILY_PALETTES[族]` 的对应 token 色；把某语言挪到别的族：改 `LANG_TO_FAMILY`。
 >
 > 特例：`.wxml` / `.wxss` 统一走微信暖色；`.html` / `.htm` / `.xhtml` 走 Chrome 族并对内嵌 `<style>`/`<script>` 分区分词（`<style>` 用 CSS 规则、`<script>` 用 JS 规则，共用 Chrome 色表）；独立 `.css` / `.js` 文件整篇为单一语言，不受分区影响。
+
+
 
 ### 安装依赖
 
@@ -78,6 +86,8 @@ pip install img2pdf
 
 > 若 `node` 不在 PATH，可在运行前设置环境变量 `NODE_EXE` 指向 node 可执行文件；若 `@resvg/resvg-js` 安装在本地目录，设置 `NODE_PATH` 指向该 `node_modules`。
 
+
+
 ### 使用
 
 1. 编辑 `gen_code_pdfs.py` 顶部 `FILES` 列表，填入源文件名
@@ -85,11 +95,15 @@ pip install img2pdf
 3. 运行：`python gen_code_pdfs.py`
 4. 输出：`文件名.pdf` + `文件名_images/` 目录（SVG + PNG）
 
+
+
 #### 批量打印多文件（自动识别各自语言）
 
 ```python
 FILES = ['main.c', 'game.py', 'app.js', 'schema.sql', 'hello.cj']
 ```
+
+
 
 #### 提高打印质量（300 DPI）
 
@@ -97,11 +111,15 @@ FILES = ['main.c', 'game.py', 'app.js', 'schema.sql', 'hello.cj']
 A4_W, A4_H = 2480, 3508  # A4 at 300 DPI
 ```
 
+
+
 #### 切换字体
 
 ```python
 FONT_KEY = 'cascadia'  # cascadia / firacode / jetbrains / consolas / courier / sourcecode
 ```
+
+
 
 ### 新增一种语言
 
@@ -130,24 +148,28 @@ EXT2LANG['.cj'] = 'cangjie'
 
 配置字段说明：
 
-| 字段 | 含义 |
-|------|------|
-| `name` | 页眉显示的语言名 |
-| `kw` | 关键字集合（粉色） |
-| `sp` | 特殊标识符，如 MCU 寄存器（橙色） |
-| `hash` | `'comment'` / `'macro'` / `None`（`#` 的处理方式） |
-| `slash` | 是否支持 `//` 行注释 |
-| `dash` | 是否支持 `--` 行注释 |
-| `semi` / `bang` / `apos` | 是否支持 `;` / `!` / `'` 行注释 |
-| `block` | 块注释 `(开始, 结束)` 元组，或 `None` |
-| `quotes` | 字符串引号字符（不含反引号） |
-| `backtick` | 是否支持反引号模板串 |
-| `triple` | 三引号字符串定界符元组，如 `('"""', "'''")` |
-| `atword` | 是否高亮 `@` 注解 / 指令 / 装饰器 |
-| `dollar` | 是否高亮 `$` 变量（支持 `${}`、`$()`） |
-| `tags` | 是否高亮 HTML/XML 标签 |
-| `colon_target` | 是否高亮 Makefile 目标行 / YAML 键 |
-| `hashline` | Markdown 标题整行高亮颜色 |
+
+| 字段                       | 含义                                          |
+| ------------------------ | ------------------------------------------- |
+| `name`                   | 页眉显示的语言名                                    |
+| `kw`                     | 关键字集合（粉色）                                   |
+| `sp`                     | 特殊标识符，如 MCU 寄存器（橙色）                         |
+| `hash`                   | `'comment'` / `'macro'` / `None`（`#` 的处理方式） |
+| `slash`                  | 是否支持 `//` 行注释                               |
+| `dash`                   | 是否支持 `--` 行注释                               |
+| `semi` / `bang` / `apos` | 是否支持 `;` / `!` / `'` 行注释                    |
+| `block`                  | 块注释 `(开始, 结束)` 元组，或 `None`                  |
+| `quotes`                 | 字符串引号字符（不含反引号）                              |
+| `backtick`               | 是否支持反引号模板串                                  |
+| `triple`                 | 三引号字符串定界符元组，如 `('"""', "'''")`              |
+| `atword`                 | 是否高亮 `@` 注解 / 指令 / 装饰器                      |
+| `dollar`                 | 是否高亮 `$` 变量（支持 `${}`、`$()`）                 |
+| `tags`                   | 是否高亮 HTML/XML 标签                            |
+| `colon_target`           | 是否高亮 Makefile 目标行 / YAML 键                  |
+| `hashline`               | Markdown 标题整行高亮颜色                           |
+
+
+
 
 ### 自动适配逻辑
 
@@ -157,6 +179,8 @@ EXT2LANG['.cj'] = 'cangjie'
 4. **每页行数**：A4 可用高度 ÷ (`字号 × LINE_HEIGHT_RATIO`)
 5. **标点换行**：超宽行在 `;,(){}[]` 后折行，可用宽度扣除该行缩进，续行不产生新行号
 6. **渲染**：行号在 codeClip 外渲染（始终可见），代码在 clip 内渲染，font-family 正确引用
+
+
 
 ### 输出结构
 
@@ -172,11 +196,15 @@ filename.c.pdf           ← 最终 PDF
 
 ---
 
+
+
 ## English / English
 
 > 🇬🇧 English | [中文](#chinese)
 
 > Convert source code files into A4 images with line numbers and syntax highlighting, then merge to PDF.
+
+
 
 ### Features
 
@@ -198,37 +226,45 @@ filename.c.pdf           ← 最终 PDF
 - ✅ **Fixed A4 ratio** — 794×1123px (96 DPI), uniform page dimensions
 - ✅ **PDF output** — One PDF per source file
 
+
+
 ### Supported languages (49)
 
 **Scripting / dynamic**: Python (`.py .pyw`), JavaScript (`.js .jsx .mjs .cjs`), TypeScript (`.ts .tsx .mts .cts`), Ruby (`.rb`), Perl (`.pl .pm .t`), PHP (`.php .php3-5 .phtml`), Lua (`.lua`), Shell (`.sh .bash .zsh`), PowerShell (`.ps1 .psm1 .psd1`), Batch (`.bat .cmd`), Visual Basic (`.vb .vba .bas`), R (`.r`), MATLAB (`.m`*), Julia (`.jl`)
 
 **Compiled / systems**: C (`.c .h`), C++ (`.cpp .cc .cxx .hpp .hh .hxx .c++`), Arduino (`.ino .pde`), Go (`.go`), Rust (`.rs`), Zig (`.zig`), Swift (`.swift`), Kotlin (`.kt .kts`), Dart (`.dart`), **Cangjie (`.cj`)**, Objective-C (`.m`* `.mm`), Scala (`.scala .sc`), Haskell (`.hs .lhs`), Erlang (`.erl .hrl`), Elixir (`.ex .exs`), Clojure (`.clj .cljs .cljc .edn`), F# (`.fs .fsx .fsi`), Pascal (`.pas .pp`), Fortran (`.f .f90 .f95 .f03 .f08 .for`), Assembly (`.asm .s .nasm`), Solidity (`.sol`)
 
-**Markup / config / data**: Java (`.java`), C# (`.cs`), Groovy (`.groovy .gradle`), CSS (`.css .scss .less`), HTML/XML (`.html .htm .xhtml .xml .svg .vue`), JSON (`.json .jsonc .json5`), YAML (`.yml .yaml`), INI/TOML (`.ini .cfg .conf .toml .properties`), Markdown (`.md .markdown`), LaTeX (`.tex .sty .cls`), SQL (`.sql`), Makefile (`Makefile`*), Dockerfile (`Dockerfile`*), CMake (`CMakeLists.txt`* `.cmake`)
+**Markup / config / data**: Java (`.java`), C# (`.cs`), Groovy (`.groovy .gradle`), CSS (`.css .scss .less`), HTML/XML (`.html .htm .xhtml .xml .svg .vue`), JSON (`.json .jsonc .json5`), YAML (`.yml .yaml`), INI/TOML (`.ini .cfg .conf .toml .properties`), Markdown (`.md .markdown`), LaTeX (`.tex .sty .cls`), SQL (`.sql`), Makefile (`Makefile`*), Dockerfile (*`Dockerfile`), CMake (`CMakeLists.txt`* `.cmake`)
 
-> \* Special detection: `.m` files are sniffed (files with `@interface`/`#import`/`NSString` are Objective-C, otherwise MATLAB); `Makefile`/`Dockerfile`/`CMakeLists.txt` are detected by basename. Unknown extensions fall back to a generic config so rendering still succeeds.
+>  Special detection: `.m` files are sniffed (files with `@interface`/`#import`/`NSString` are Objective-C, otherwise MATLAB); `Makefile`/`Dockerfile`/`CMakeLists.txt` are detected by basename. Unknown extensions fall back to a generic config so rendering still succeeds.
+
+
 
 ### Color families
 
 Default colors follow the **light theme** of each language's mainstream editor, all on a white background (ink-friendly for printing). The 49 languages are grouped into **11 color families**; languages in the same family share one palette. You can override a whole family or a single language.
 
-| Family | Reference editor / theme | Main languages |
-|--------|-------------------------|----------------|
-| **VS Code** (Light+) | Visual Studio Code | Python, Go, Rust, TypeScript, Shell, Lua, Perl, JSON, YAML, SQL, Solidity, … |
-| **IntelliJ** (light) | IDEA / CLion / PyCharm / PhpStorm | Java, C++, Ruby, PHP, Kotlin, Dart, Scala, Haskell, Pascal, Groovy, Batch |
-| **Xcode** | Xcode Default | Swift, Objective-C |
-| **Visual Studio** (2022 Light) | VS2022 | C#, F#, Visual Basic |
-| **Keil μVision** | Keil classic (51 / STM32) | C, Assembly |
-| **Chrome DevTools** | Chrome source view | HTML, CSS, JavaScript |
-| **MATLAB** | MATLAB default | MATLAB |
-| **RStudio** (light) | RStudio Light | R |
-| **TeXstudio** (light) | TeXstudio | LaTeX |
-| **Arduino IDE** | Arduino default | Arduino (`.ino`) |
-| **WeChat warm** | WeChat DevTools | WXML, WXSS (mini-programs) |
+
+| Family                         | Reference editor / theme          | Main languages                                                               |
+| ------------------------------ | --------------------------------- | ---------------------------------------------------------------------------- |
+| **VS Code** (Light+)           | Visual Studio Code                | Python, Go, Rust, TypeScript, Shell, Lua, Perl, JSON, YAML, SQL, Solidity, … |
+| **IntelliJ** (light)           | IDEA / CLion / PyCharm / PhpStorm | Java, C++, Ruby, PHP, Kotlin, Dart, Scala, Haskell, Pascal, Groovy, Batch    |
+| **Xcode**                      | Xcode Default                     | Swift, Objective-C                                                           |
+| **Visual Studio** (2022 Light) | VS2022                            | C#, F#, Visual Basic                                                         |
+| **Keil μVision**               | Keil classic (51 / STM32)         | C, Assembly                                                                  |
+| **Chrome DevTools**            | Chrome source view                | HTML, CSS, JavaScript                                                        |
+| **MATLAB**                     | MATLAB default                    | MATLAB                                                                       |
+| **RStudio** (light)            | RStudio Light                     | R                                                                            |
+| **TeXstudio** (light)          | TeXstudio                         | LaTeX                                                                        |
+| **Arduino IDE**                | Arduino default                   | Arduino (`.ino`)                                                             |
+| **WeChat warm**                | WeChat DevTools                   | WXML, WXSS (mini-programs)                                                   |
+
 
 > Mappings live in `FAMILY_PALETTES` (palettes) + `LANG_TO_FAMILY` (language → family) inside `gen_code_pdfs.py`. To change a language's colors: edit the token colors in `FAMILY_PALETTES[family]`; to move a language to a different family: edit `LANG_TO_FAMILY`.
 >
 > Special cases: `.wxml` / `.wxss` always use the WeChat warm scheme; `.html` / `.htm` / `.xhtml` use the Chrome family and zoned tokenization (a `<style>` region uses CSS rules, a `<script>` region uses JS rules, both under the Chrome palette). Stand-alone `.css` / `.js` files stay single-language end-to-end and are not affected by zoning.
+
+
 
 ### Prerequisites
 
@@ -239,6 +275,8 @@ pip install img2pdf
 
 > If `node` is not on PATH, set the `NODE_EXE` environment variable to the node binary before running. If `@resvg/resvg-js` is installed locally, set `NODE_PATH` to that `node_modules` directory.
 
+
+
 ### Usage
 
 1. Edit the `FILES` list at the top of `gen_code_pdfs.py`
@@ -246,11 +284,15 @@ pip install img2pdf
 3. Run: `python gen_code_pdfs.py`
 4. Output: `filename.pdf` + `filename_images/` directory (SVG + PNG)
 
+
+
 #### Batch processing (auto-detects each language)
 
 ```python
 FILES = ['main.c', 'game.py', 'app.js', 'schema.sql', 'hello.cj']
 ```
+
+
 
 #### Print quality (300 DPI)
 
@@ -258,11 +300,15 @@ FILES = ['main.c', 'game.py', 'app.js', 'schema.sql', 'hello.cj']
 A4_W, A4_H = 2480, 3508  # A4 at 300 DPI
 ```
 
+
+
 #### Change font
 
 ```python
 FONT_KEY = 'cascadia'  # cascadia / firacode / jetbrains / consolas / courier / sourcecode
 ```
+
+
 
 ### Add a new language
 
@@ -291,24 +337,28 @@ EXT2LANG['.cj'] = 'cangjie'
 
 Config fields:
 
-| Field | Meaning |
-|-------|---------|
-| `name` | Language name shown in page header |
-| `kw` | Keyword set (pink) |
-| `sp` | Special identifiers, e.g. MCU registers (orange) |
-| `hash` | `'comment'` / `'macro'` / `None` (how `#` is handled) |
-| `slash` | Enable `//` line comment |
-| `dash` | Enable `--` line comment |
-| `semi` / `bang` / `apos` | Enable `;` / `!` / `'` line comments |
-| `block` | Block comment `(start, end)` tuple, or `None` |
-| `quotes` | String quote chars (excluding backtick) |
-| `backtick` | Enable backtick template strings |
-| `triple` | Triple-quoted string delimiters, e.g. `('"""', "'''")` |
-| `atword` | Highlight `@` annotations / directives / decorators |
-| `dollar` | Highlight `$` variables (supports `${}`, `$()`) |
-| `tags` | Highlight HTML/XML tags |
-| `colon_target` | Highlight Makefile targets / YAML keys |
-| `hashline` | Markdown heading full-line color |
+
+| Field                    | Meaning                                                |
+| ------------------------ | ------------------------------------------------------ |
+| `name`                   | Language name shown in page header                     |
+| `kw`                     | Keyword set (pink)                                     |
+| `sp`                     | Special identifiers, e.g. MCU registers (orange)       |
+| `hash`                   | `'comment'` / `'macro'` / `None` (how `#` is handled)  |
+| `slash`                  | Enable `//` line comment                               |
+| `dash`                   | Enable `--` line comment                               |
+| `semi` / `bang` / `apos` | Enable `;` / `!` / `'` line comments                   |
+| `block`                  | Block comment `(start, end)` tuple, or `None`          |
+| `quotes`                 | String quote chars (excluding backtick)                |
+| `backtick`               | Enable backtick template strings                       |
+| `triple`                 | Triple-quoted string delimiters, e.g. `('"""', "'''")` |
+| `atword`                 | Highlight `@` annotations / directives / decorators    |
+| `dollar`                 | Highlight `$` variables (supports `${}`, `$()`)        |
+| `tags`                   | Highlight HTML/XML tags                                |
+| `colon_target`           | Highlight Makefile targets / YAML keys                 |
+| `hashline`               | Markdown heading full-line color                       |
+
+
+
 
 ### Auto-fit Logic
 
@@ -318,6 +368,8 @@ Config fields:
 4. **Lines per page**: A4 available height ÷ (`font_size × LINE_HEIGHT_RATIO`)
 5. **Word-wrapping**: lines exceeding available width break after `;,(){}[]`, continuation lines show no extra line number
 6. **Rendering**: line numbers outside codeClip (always visible), code content inside clip, font-family properly quoted
+
+
 
 ### Output Structure
 
@@ -332,6 +384,8 @@ filename.c.pdf           ← Final PDF
 ```
 
 ---
+
+
 
 ## License
 
