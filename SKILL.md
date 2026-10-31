@@ -1,163 +1,111 @@
 ---
 name: "code-to-images"
-description: "Convert code files to A4-ratio PNG/SVG images with line numbers and syntax highlighting, then merge to PDF. 支持中英文双语说明。"
+description: "Convert code files into A4-ratio PNG/SVG images with line numbers, syntax highlighting and per-editor color families, then merge into a PDF. 把代码文件渲染成带行号、语法高亮的 A4 图片并合成 PDF。"
 ---
 
-# Code → A4 图片 + PDF / A4 Images + PDF
+# Code → A4 图片 + PDF / Code → A4 Images + PDF
 
-**v2.3.0** — 49 种语言 · 按编辑器主题配色（11 族） · 忠实缩进 · 自动换行 · 双语文档
+**v2.3.0** · 49 种语言 · 11 个编辑器配色族 · 忠实缩进 · 自动换行 · 裁剪导出
+
+把源代码文件渲染成**带行号、语法高亮**的 A4 比例图片（SVG + PNG），再合成一个 PDF。
+语言按扩展名 / 文件名 / 内容自动识别，不用手动指定。
 
 ---
 
-📖 [中文](#chinese) · [English](#english)
+## 什么时候用
+
+- 代码要**打印**：作业、讲义、代码审查、比赛提交稿
+- 代码要**发图**：贴到文档、PPT、社交平台，需要整齐的版式和行号
+- 代码要**存成 PDF 归档**，又不想丢高亮和缩进
 
 ---
 
-## 中文说明 / Chinese
-
-> 🇨🇳 中文 | [中文](#chinese)
-
-将源代码文件转换为多页 A4 比例图片（SVG+PNG），然后合并为一个 PDF。
-
-### 功能
-
-- ✅ **49 种语言自动识别** — 按扩展名 / 文件名 / 内容自动选择语法规则：Python、C/C++、Arduino、Java、JavaScript、TypeScript、Go、Rust、Ruby、Shell、Lua、SQL、PHP、C#、CSS、HTML、JSON、YAML、**仓颉 Cangjie**、Kotlin、Swift、Dart、R、Perl、MATLAB、Objective-C、Scala、Haskell、Julia、Zig、Groovy、PowerShell、Batch、Visual Basic、Makefile、Dockerfile、INI/TOML、Markdown、LaTeX、CMake、Solidity、Erlang、Elixir、Clojure、F#、Pascal、Fortran、汇编
-- ✅ **多语言注释与字符串** — 跨行块注释（`/* */`、`<!-- -->`、`--[[ ]]`、`{- -}`、`#= =#`、`(* *)`、`{ }` 等）、三引号字符串（Python/Julia 的 `"""` `'''`）、`#`/`//`/`--`/`;`/`!`/`'` 行注释
-- ✅ **语言特性高亮** — HTML/XML 标签、`@` 注解与指令（Java/Python/ObjC/Swift）、`$` 变量（Shell/PHP/Perl/PowerShell）、Makefile 目标行与 YAML 键、Markdown 标题
-- ✅ **行号** — 自适应装订线宽度
-- ✅ **语法高亮** — 关键字、寄存器、宏、数字、字符串、变量、标签、注释分别着色
-- ✅ **6 种等宽字体** — Cascadia Code / Fira Code / JetBrains Mono / Consolas / Courier New / Source Code Pro
-- ✅ **字号自动适配** — 根据最长行自动缩放，填满 A4 宽度
-- ✅ **每页行数自适应** — 根据字号和行高自动计算
-- ✅ **忠实缩进** — 保留源码实际前导空格 / Tab，C 风格大括号与 Python 风格空格缩进都正确呈现
-- ✅ **代码超宽自动换行** — 在 `;,(){}[]` 标点后折行，续行不产生新行号
-- ✅ **Tab 制表位** — 正确按制表位对齐
-- ✅ **固定 A4 比例** — 794×1123px (96 DPI)
-- ✅ **PDF 输出** — 每个源文件一份 PDF
-
-> 💡 `.m` 文件自动嗅探：含 `@interface`/`#import`/`NSString` 识别为 Objective-C，否则识别为 MATLAB；`Makefile`/`Dockerfile`/`CMakeLists.txt` 按文件名识别。
-
-### 依赖
+## 快速开始
 
 ```bash
+# 依赖（先装一次）
 npm install -g @resvg/resvg-js
 pip install img2pdf
+
+# 渲染指定文件（推荐）
+python gen_code_pdfs.py main.c app.py schema.sql
+
+# 或编辑 gen_code_pdfs.py 顶部的 FILES 列表后直接运行
+python gen_code_pdfs.py
 ```
 
-### 使用
+**输出**：
 
-1. 编辑 `gen_code_pdfs.py` 顶部的 `FILES` 列表，填入源文件名
-2. 按需修改 `FONT_KEY`、`FONT_SIZE` 等配置
-3. 运行：`python gen_code_pdfs.py`
-4. 输出：`文件名.pdf` + `文件名_images/` 目录（中间 SVG/PNG）
+```
+main.c.pdf                    ← 合成好的 PDF（默认裁掉空白，只留代码区域）
+main.c_images/
+├── code_page_1.svg           ← 矢量图，可再编辑
+├── code_page_1.png           ← 位图
+├── code_page_1_crop.png      ← PDF 实际使用的裁剪页
+└── ...
+```
 
-### 配置
+---
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `FONT_KEY` | `cascadia` | 字体：`cascadia`/`firacode`/`jetbrains`/`consolas`/`courier`/`sourcecode` |
-| `FONT_SIZE` | `14` | 基础字号 (px)，超宽代码自动缩小 |
+## 核心能力
+
+| 能力 | 说明 |
+|---|---|
+| **49 种语言自动识别** | 按扩展名 → 文件名 → 内容嗅探（`.m` 区分 Objective-C / MATLAB，`Makefile` / `Dockerfile` / `CMakeLists.txt` 按文件名） |
+| **按编辑器配色（11 族）** | 每种语言用它最主流编辑器的亮色主题：VS Code、IntelliJ、Xcode、Visual Studio、Keil、Chrome DevTools、MATLAB、RStudio、TeXstudio、Arduino、微信暖色 |
+| **小程序专属配色** | `.wxml` / `.wxss` 走微信开发者工具暖色，`{{ }}` 表达式单独着色 |
+| **HTML 分区高亮** | `.html` 内 `<style>` 按 CSS 分词、`<script>` 按 JS 分词，整页共用 Chrome 色表 |
+| **多行结构** | `/* */`、`<!-- -->`、`--[[ ]]`、`{- -}`、`#= =#`、`(* *)` 跨行注释；三引号字符串（Python / Julia / 仓颉） |
+| **语言特性 token** | `@` 注解与装饰器、`$` 变量（含 `${}` / `$()`）、HTML/XML 标签、Makefile 目标行、YAML 键、Markdown 标题 |
+| **忠实缩进** | 保留源码真实的前导空格 / Tab，大括号风格和空格缩进语言都对 |
+| **自适应排版** | 字号按最长行自动缩放填满页宽（下限可设）；每页行数按字号自动计算 |
+| **标点换行** | 超宽行在 `; , ( ) { } [ ]` 后折行，续行不占新行号 |
+| **6 种等宽字体** | Cascadia Code / Fira Code / JetBrains Mono / Consolas / Courier New / Source Code Pro |
+| **输出尺寸** | 默认 300 DPI（2480×3508），打印清晰；可改回 96 DPI（794×1123） |
+
+---
+
+## 支持的语言
+
+**脚本 / 动态**：Python、JavaScript、TypeScript、Ruby、Perl、PHP、Lua、Shell、PowerShell、Batch、Visual Basic、R、MATLAB、Julia
+
+**编译 / 系统**：C、C++、Arduino、Go、Rust、Zig、Swift、Kotlin、Dart、仓颉 Cangjie、Objective-C、Scala、Haskell、Erlang、Elixir、Clojure、F#、Pascal、Fortran、Assembly、Solidity
+
+**标记 / 配置 / 数据**：Java、C#、Groovy、CSS、HTML/XML、JSON、YAML、INI/TOML、Markdown、LaTeX、SQL、Makefile、Dockerfile、CMake
+
+> 未识别的扩展名会回退到通用规则，保证仍能正常出图。
+
+---
+
+## 常用配置
+
+在 `gen_code_pdfs.py` 顶部：
+
+| 参数 | 默认 | 作用 |
+|---|---|---|
+| `FILES` | — | 要渲染的文件列表（命令行参数可覆盖） |
+| `FONT_KEY` | `cascadia` | 字体：`cascadia` / `firacode` / `jetbrains` / `consolas` / `courier` / `sourcecode` |
+| `FONT_SIZE` | `14` | 基础字号（px），超宽代码会自动缩小 |
+| `MIN_FONT_SIZE` | `7` | 自动缩小的下限 |
 | `LINE_HEIGHT_RATIO` | `1.65` | 行高系数 |
 | `TAB_WIDTH` | `4` | Tab 制表位宽度 |
-| `MIN_FONT_SIZE` | `7` | 自动缩小时的最小字号 |
 | `WRAP_IDENT` | `2` | 续行额外缩进字符数 |
+| `CROP_TO_CONTENT` | `True` | PDF 页裁剪到代码区域，去掉大片留白 |
+| `A4_W, A4_H` | `2480, 3508` | 输出尺寸（300 DPI）；改 `794, 1123` 即 96 DPI |
+
+**换配色**：改 `FAMILY_PALETTES[族]` 里某个 token 的颜色；**换族**：改 `LANG_TO_FAMILY[语言]`。
+
+**新增语言**：在 `LANG` 里加一条规则（关键字、注释、字符串、特殊 token），再到 `EXT2LANG` 登记扩展名即可。
 
 ---
 
-## English / English
+## 注意事项
 
-> 🇬🇧 English | [中文](#chinese)
-
-Convert source code files into multi-page A4-ratio images (SVG+PNG), then merge into a single PDF.
-
-### Features
-
-- ✅ **49-language auto-detection** — Picks syntax rules by extension / basename / content sniff: Python, C/C++, Arduino, Java, JavaScript, TypeScript, Go, Rust, Ruby, Shell, Lua, SQL, PHP, C#, CSS, HTML, JSON, YAML, Cangjie, Kotlin, Swift, Dart, R, Perl, MATLAB, Objective-C, Scala, Haskell, Julia, Zig, Groovy, PowerShell, Batch, Visual Basic, Makefile, Dockerfile, INI/TOML, Markdown, LaTeX, CMake, Solidity, Erlang, Elixir, Clojure, F#, Pascal, Fortran, Assembly
-- ✅ **Rich comments & strings** — Cross-line block comments (`/* */`, `<!-- -->`, `--[[ ]]`, `{- -}`, `#= =#`, `(* *)`, `{ }`…), triple-quoted strings (Python/Julia `"""` `'''`), `#`/`//`/`--`/`;`/`!`/`'` line comments
-- ✅ **Language-specific tokens** — HTML/XML tags, `@` annotations & directives (Java/Python/ObjC/Swift), `$` variables (Shell/PHP/Perl/PowerShell), Makefile targets & YAML keys, Markdown headings
-- ✅ **Line numbers** — Adaptive gutter width
-- ✅ **Syntax highlighting** — Keywords, registers, macros, numbers, strings, variables, tags, comments
-- ✅ **6 monospace fonts** — Cascadia Code / Fira Code / JetBrains Mono / Consolas / Courier New / Source Code Pro
-- ✅ **Auto font size** — Scales to fill A4 width based on longest line
-- ✅ **Auto lines per page** — Computed from font size and line height
-- ✅ **Faithful indentation** — Preserves actual leading whitespace / tabs for both brace-based and space-based languages
-- ✅ **Auto word-wrapping** — Breaks after `;,(){}[]`, continuation lines get no new line number
-- ✅ **Tab stops** — Proper tab alignment
-- ✅ **Fixed A4 ratio** — 794×1123px (96 DPI)
-- ✅ **PDF output** — One PDF per source file
-
-> 💡 `.m` content sniffing: files with `@interface`/`#import`/`NSString` are treated as Objective-C, otherwise MATLAB; `Makefile`/`Dockerfile`/`CMakeLists.txt` are detected by basename.
-
-### Prerequisites
-
-```bash
-npm install -g @resvg/resvg-js
-pip install img2pdf
-```
-
-### Usage
-
-1. Edit the `FILES` list at the top of `gen_code_pdfs.py`
-2. Configure `FONT_KEY`, `FONT_SIZE`, etc.
-3. Run: `python gen_code_pdfs.py`
-4. Output: `filename.pdf` + `filename_images/` directory (intermediate SVG/PNG)
-
-### Configuration
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `FONT_KEY` | `cascadia` | Font: `cascadia`/`firacode`/`jetbrains`/`consolas`/`courier`/`sourcecode` |
-| `FONT_SIZE` | `14` | Base font size (px), auto-reduces for wide code |
-| `LINE_HEIGHT_RATIO` | `1.65` | Line height multiplier |
-| `TAB_WIDTH` | `4` | Tab stop width |
-| `MIN_FONT_SIZE` | `7` | Minimum font size when auto-reducing |
-| `WRAP_IDENT` | `2` | Extra indent for continuation lines |
+- 必须能调用 `node`（渲染 SVG → PNG）。不在 PATH 时设环境变量 `NODE_EXE` 指向可执行文件。
+- `@resvg/resvg-js` 装在本地目录时，设 `NODE_PATH` 指向对应 `node_modules`。
+- 源文件按 UTF-8 读取；非 UTF-8 编码请先转码。
+- 单文件页数由内容长度决定，超长文件会生成多页，每页独立 SVG/PNG，最后合成一个 PDF。
 
 ---
 
-## Python Batch Script
-
-Save as `gen_code_pdfs.py` and run with `python gen_code_pdfs.py`:
-
-```python
-#!/usr/bin/env python3
-"""Batch convert code files -> A4 images + PDF. Multi-language auto-detection."""
-import os, sys, subprocess, json
-
-# ===== CONFIG =====
-# Language is auto-detected from each file's extension / basename / content (see LANG / EXT2LANG / BASE2LANG below).
-FILES = [/* List source files here, e.g. 'main.c', 'game.py', 'app.ts', 'Makefile' */]
-FONT_KEY = '***'   # cascadia | firacode | jetbrains | consolas | courier | sourcecode
-FONT_SIZE = 14; LINE_HEIGHT_RATIO = 1.65; TAB_WIDTH = 4; MIN_FONT_SIZE = 7; WRAP_IDENT = 2
-NODE_EXE = os.environ.get('NODE_EXE', 'node')   # full path to node if not on PATH
-
-FONT_NAMES = {'cascadia':'Cascadia Code','firacode':'Fira Code','jetbrains':'JetBrains Mono',
-    'consolas':'Consolas','courier':'Courier New','sourcecode':'Source Code Pro'}
-A4_W, A4_H = 794, 1123; HDR_H = 60; PAD_R = 36; PAD_T = 72; PAD_B = 28
-CONTENT_H = A4_H - PAD_T - PAD_B; CHAR_RATIO = 0.60; WRAP_PUNCT = set(';,(){}[]')
-CO = {'keyword':'#d63384','register':'#e8590c','macro':'#9c36b5',
-      'number':'#2b8a3e','string':'#099268','comment':'#868e96','var':'#1971c2','tag':'#0b7285','text':'#212529'}
-BG='#ffffff'; HDR_BG='#f1f3f5'; HDR_BD='#dee2e6'; GT_BG='#f8f9fa'; GT_BD='#e9ecef'; LN_COLOR='#868e96'
-
-# Per-language rules (keyword set, comment styles, string quotes, ...).
-LANG = {
-    'python': {'name':'Python','kw':{'def','class','import','from','return','if','for',...},
-               'sp':set(),'hash':'comment','slash':False,'dash':False,'block':None,'quotes':'"\'','backtick':False,
-               'triple':('"""',"'''"),'atword':True},
-    'c':      {'name':'C','kw':{'void','char','int','for','if','while',...},'sp':{'P0',...,'P7','RST'},
-               'hash':'macro','slash':True,'dash':False,'block':('/*','*/'),'quotes':'"\'','backtick':False},
-    # ... 40+ languages: see gen_code_pdfs.py (LANG / EXT2LANG / BASE2LANG)
-}
-EXT2LANG = {'.py':'python', '.c':'c', '.h':'c', '.cpp':'c++', '.java':'java', '.js':'js', '.go':'go',
-            '.rs':'rust', '.rb':'ruby', '.sh':'shell', '.lua':'lua', '.sql':'sql', '.php':'php',
-            '.cs':'c#', '.css':'css', '.html':'html', '.xml':'html', '.json':'json', '.yaml':'yaml',
-            '.ts':'typescript', '.kt':'kotlin', '.swift':'swift', '.m':'ambig_m', '.mm':'objective-c',
-            '.r':'r', '.pl':'perl', '.scala':'scala', '.hs':'haskell', '.jl':'julia', '.zig':'zig',
-            '.groovy':'groovy', '.ps1':'powershell', '.bat':'batch', '.vb':'vb', '.ino':'arduino',
-            '.mk':'makefile', '.ini':'ini', '.toml':'ini', '.md':'markdown', '.tex':'tex',
-            '.cmake':'cmake', '.sol':'solidity', '.erl':'erlang', '.ex':'elixir', '.clj':'clojure',
-            '.fs':'fsharp', '.pas':'pascal', '.f90':'fortran', '.asm':'assembly'}
-BASE2LANG = {'makefile':'makefile','dockerfile':'dockerfile','cmakelists.txt':'cmake'}
-
-# [Full script with LANG/EXT2LANG tables at: gen_code_pdfs.py (local, v2.3.0)]
-```
+**仓库**：https://github.com/yon-gjun/code-to-images

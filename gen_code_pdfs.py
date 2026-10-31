@@ -17,6 +17,11 @@ LINE_HEIGHT_RATIO = 1.65
 TAB_WIDTH = 4
 MIN_FONT_SIZE = 7
 WRAP_IDENT = 2
+CROP_TO_CONTENT = True   # PDF pages cropped to the rendered code (no blank bottom)
+CROP_PAD_X = 24          # horizontal padding around content in PDF crops (px)
+CROP_PAD_Y = 16          # vertical padding around content in PDF crops (px)
+CROP_INK_THRESHOLD = 200 # grayscale below this counts as ink when cropping
+CROP_IGNORE_BOTTOM = 48  # footer strip (page number) excluded from content bounds (px)
 
 # Optional: full path to the node binary (defaults to "node" on PATH).
 NODE_EXE = os.environ.get('NODE_EXE', 'node')
@@ -1097,6 +1102,9 @@ def gen_svg_page(display_lines, total_lines, page_num, total_pages,
 
 # ===== MAIN =====
 BASE = os.getcwd()
+# Optional CLI override: python gen_code_pdfs.py a.py b.c ...
+if len(sys.argv) > 1:
+    FILES = sys.argv[1:]
 for fname in FILES:
     src = os.path.join(BASE, fname)
     if not os.path.exists(src):
@@ -1163,8 +1171,29 @@ for fname in FILES:
     pngs = sorted([os.path.join(out_dir,f) for f in os.listdir(out_dir) if f.endswith('.png')],
                   key=lambda x: int(os.path.basename(x).replace('code_page_','').replace('.png','')))
     pdf_path = os.path.join(BASE, fname+'.pdf')
+    # Crop pages to the code area instead of full A4.
+    # Set CROP_TO_CONTENT = False for full A4 pages.
+    if CROP_TO_CONTENT:
+        from PIL import Image
+        cropped = []
+        for pn in pngs:
+            im = Image.open(pn).convert('RGB')
+            w, h = im.size
+            # Ignore the footer strip (page number) when measuring content
+            region = im.crop((0, 0, w, max(1, h - CROP_IGNORE_BOTTOM)))
+            bbox = region.convert('L').point(lambda v: 255 if v < CROP_INK_THRESHOLD else 0).getbbox()
+            if bbox:
+                x0, y0, x1, y1 = bbox
+                x0 = max(0, x0 - CROP_PAD_X); y0 = max(0, y0 - CROP_PAD_Y)
+                x1 = min(w, x1 + CROP_PAD_X); y1 = min(h, y1 + CROP_PAD_Y)
+                im = im.crop((x0, y0, x1, y1))
+            cp = pn[:-4] + '_crop.png'
+            im.save(cp); cropped.append(cp)
+        pdf_pages = cropped
+    else:
+        pdf_pages = pngs
     with open(pdf_path, 'wb') as f:
-        f.write(img2pdf.convert(pngs))
+        f.write(img2pdf.convert(pdf_pages))
     print(f'{fname}: PDF -> {pdf_path} ({os.path.getsize(pdf_path)//1024}KB)')
 
 print('\n=== All done! ===')
