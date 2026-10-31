@@ -5,7 +5,7 @@ description: "Convert code files to A4-ratio PNG/SVG images with line numbers an
 
 # Code → A4 图片 + PDF / A4 Images + PDF
 
-**v2.2.0** — 49 种语言 · 多语言自动识别 · 忠实缩进 · Auto word-wrapping
+**v2.3.0** — 49 种语言 · 按编辑器主题配色（11 族） · 忠实缩进 · 自动换行 · 双语文档
 
 ---
 
@@ -159,5 +159,5 @@ EXT2LANG = {'.py':'python', '.c':'c', '.h':'c', '.cpp':'c++', '.java':'java', '.
             '.fs':'fsharp', '.pas':'pascal', '.f90':'fortran', '.asm':'assembly'}
 BASE2LANG = {'makefile':'makefile','dockerfile':'dockerfile','cmakelists.txt':'cmake'}
 
-# [Full script with LANG/EXT2LANG tables at: gen_code_pdfs.py (local, v2.2.0)]
+# [Full script with LANG/EXT2LANG tables at: gen_code_pdfs.py (local, v2.3.0)]
 ```
